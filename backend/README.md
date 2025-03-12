@@ -5,7 +5,6 @@ Este directorio contiene el backend del asistente de derecho laboral colombiano 
 ## Tecnologías utilizadas
 
 - **FastAPI**: Framework moderno para APIs con Python
-- **PostgreSQL**: Base de datos relacional para almacenar documentos legales
 - **SQLAlchemy**: ORM para interactuar con la base de datos
 - **BM25**: Algoritmo de recuperación de información
 - **GPT**: Modelos de lenguaje para generación de respuestas
@@ -33,8 +32,11 @@ backend/
 │   │   ├── ai_service.py
 │   │   └── search_service.py
 │   └── utils/
-├── main.py
-├── .env
+├── config.py        # Configuración centralizada
+├── main.py          # Aplicación principal FastAPI
+├── run.py           # Script para ejecutar el backend desde cualquier ubicación
+├── test_server.py   # Servidor simple para pruebas
+├── .env             # Variables de entorno (excluido de git)
 └── README.md
 ```
 
@@ -51,13 +53,7 @@ backend/
    pip install -r ../requirements.txt
    ```
 
-3. Configura la base de datos PostgreSQL:
-   ```bash
-   # Ejemplo en PostgreSQL
-   createdb laborlaw
-   ```
-
-4. Copia el archivo `.env.example` a `.env` y configura las variables de entorno:
+3. Configura las variables de entorno:
    ```bash
    cp .env.example .env
    # Edita .env con tus credenciales
@@ -65,17 +61,54 @@ backend/
 
 ## Ejecución
 
-Para ejecutar el servidor en modo desarrollo:
+Para ejecutar el servidor, **asegúrate de estar en el directorio raíz del proyecto** y ejecuta:
 
 ```bash
-uvicorn main:app --reload
+python backend/run.py
 ```
 
-El servidor estará disponible en [http://localhost:8000](http://localhost:8000).
+O, alternativamente, puedes entrar al directorio `backend` y ejecutar:
+
+```bash
+cd backend
+python run.py
+```
+
+Para probar que el servidor funciona correctamente, también puedes ejecutar:
+
+```bash
+cd backend
+python test_server.py
+```
+
+El servidor estará disponible en la dirección y puerto configurados en `.env` (por defecto http://127.0.0.1:12345).
+
+## API Docs
 
 La documentación interactiva de la API estará disponible en:
-- [http://localhost:8000/docs](http://localhost:8000/docs) (Swagger UI)
-- [http://localhost:8000/redoc](http://localhost:8000/redoc) (ReDoc)
+- http://127.0.0.1:12345/docs (Swagger UI)
+- http://127.0.0.1:12345/redoc (ReDoc)
+
+## Solución de problemas
+
+Si encuentras errores al iniciar el servidor:
+
+1. **Problemas de puerto**: El puerto configurado puede estar en uso. Prueba cambiando el puerto en el archivo `.env` a otro número (como 12345, 54321, etc.)
+
+2. **Problemas de base de datos**: Por defecto se usa SQLite para desarrollo. Si deseas usar PostgreSQL, descomenta la línea correspondiente en `.env`.
+
+3. **Problemas de importación**: Asegúrate de estar ejecutando el servidor desde el directorio correcto. El script `run.py` está diseñado para manejar esto automáticamente.
+
+4. **Problemas de dependencias**: Verifica que todas las dependencias estén instaladas correctamente con `pip list`.
+
+## Pruebas
+
+Para ejecutar las pruebas:
+
+```bash
+cd backend
+pytest
+```
 
 ## Características principales
 

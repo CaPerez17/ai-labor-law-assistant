@@ -6,15 +6,23 @@ Incluye rutas API, configuración CORS y conexión a la base de datos.
 """
 
 import os
-from fastapi import FastAPI, Depends, HTTPException, status
+import sys
+from pathlib import Path
+
+# Asegurarnos de que el directorio backend esté en sys.path
+BASE_DIR = Path(__file__).resolve().parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.append(str(BASE_DIR))
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 
-from app.api import api_router
+# Importar configuración centralizada
+import config
+
+# Importaciones locales
 from app.db.database import engine, Base
-
-# Cargar variables de entorno
-load_dotenv()
+from app.api import api_router
 
 # Crear las tablas en la base de datos
 # Comentar en producción o si se usa migración
@@ -57,4 +65,9 @@ async def health():
 if __name__ == "__main__":
     import uvicorn
     
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(
+        "main:app", 
+        host=config.HOST, 
+        port=config.PORT, 
+        reload=config.DEBUG
+    )

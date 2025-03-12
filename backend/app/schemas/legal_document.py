@@ -49,8 +49,9 @@ class LegalDocumentInDB(LegalDocumentBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 
 class LegalDocumentResponse(LegalDocumentInDB):
@@ -63,8 +64,9 @@ class LegalDocumentSearchResult(BaseModel):
     document: LegalDocumentResponse
     score: float = Field(..., description="Puntuación de relevancia")
     
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 
 class SearchQuery(BaseModel):

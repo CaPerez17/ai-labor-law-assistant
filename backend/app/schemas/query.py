@@ -52,8 +52,8 @@ class QueryResponse(QueryResponseBase):
     needs_human_review: bool = Field(False, description="Indica si requiere revisión humana")
     review_reason: Optional[str] = Field(None, description="Razón por la que requiere revisión")
     
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "query_id": "550e8400-e29b-41d4-a716-446655440000",
                 "query_text": "¿Cuántos días de licencia de maternidad me corresponden?",
@@ -70,6 +70,7 @@ class QueryResponse(QueryResponseBase):
                 "review_reason": None
             }
         }
+    }
 
 
 class QueryCreate(UserQuery):

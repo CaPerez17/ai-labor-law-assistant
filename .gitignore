@@ -172,3 +172,15 @@ cython_debug/
 __pycache__/
 .env
 data/*.db
+
+# SQLite database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos temporales específicos del proyecto
+backend/test.db
+backend/simple_app.py
+backend/simplified_main.py
+backend/start.py
+backend/test_app.py

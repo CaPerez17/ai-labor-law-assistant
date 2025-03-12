@@ -1,26 +1,32 @@
 """
 Configuración de la base de datos
 --------------------------------
-Este módulo gestiona la conexión a la base de datos PostgreSQL y proporciona
+Este módulo gestiona la conexión a la base de datos y proporciona
 la sesión y el motor de base de datos para la aplicación.
 """
 
-import os
+import sys
+from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
 
-# Cargar variables de entorno
-load_dotenv()
+# Asegurar que backend/ esté en sys.path
+backend_dir = Path(__file__).resolve().parent.parent.parent
+if str(backend_dir) not in sys.path:
+    sys.path.append(str(backend_dir))
 
-# Obtener la URL de conexión desde variables de entorno o usar un valor predeterminado
-SQLALCHEMY_DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/laborlaw"
-)
+# Importar configuración centralizada
+from config import DATABASE_URL
 
 # Crear el motor de la base de datos
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+# Para SQLite, necesitamos agregar connect_args={"check_same_thread": False}
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        DATABASE_URL, connect_args={"check_same_thread": False}
+    )
+else:
+    engine = create_engine(DATABASE_URL)
 
 # Crear la clase de sesión local
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
