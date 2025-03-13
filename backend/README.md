@@ -1,127 +1,162 @@
-# Backend de AI Labor Law Assistant
+# Backend AI Labor Law Assistant 🤖⚖️
 
-Este directorio contiene el backend del asistente de derecho laboral colombiano basado en inteligencia artificial.
+Este es el backend para el proyecto "AI Labor Law Assistant", un asistente de IA especializado en derecho laboral colombiano.
 
-## Tecnologías utilizadas
+## Tecnologías Utilizadas
 
-- **FastAPI**: Framework moderno para APIs con Python
-- **SQLAlchemy**: ORM para interactuar con la base de datos
-- **BM25**: Algoritmo de recuperación de información
-- **GPT**: Modelos de lenguaje para generación de respuestas
-- **NLTK**: Procesamiento de lenguaje natural para preprocesamiento de texto
+- **FastAPI**: Framework para crear APIs con Python
+- **SQLAlchemy**: ORM para manejo de base de datos
+- **BM25**: Algoritmo de recuperación de información para búsqueda
+- **GPT/OpenAI**: Procesamiento de lenguaje natural
+- **SQLite**: Base de datos para desarrollo
+- **PostgreSQL**: Base de datos para producción (opcional)
+- **NLTK**: Procesamiento de lenguaje natural
+- **PyMuPDF**: Procesamiento de documentos PDF
 
-## Estructura del proyecto
+## Estructura del Proyecto
 
 ```
 backend/
 ├── app/
-│   ├── api/
-│   │   ├── endpoints/
-│   │   │   ├── documents.py
-│   │   │   └── queries.py
-│   │   └── __init__.py
-│   ├── core/
-│   ├── db/
-│   │   └── database.py
-│   ├── models/
-│   │   └── legal_document.py
-│   ├── schemas/
-│   │   ├── legal_document.py
-│   │   └── query.py
-│   ├── services/
-│   │   ├── ai_service.py
-│   │   └── search_service.py
-│   └── utils/
-├── config.py        # Configuración centralizada
-├── main.py          # Aplicación principal FastAPI
-├── run.py           # Script para ejecutar el backend desde cualquier ubicación
-├── test_server.py   # Servidor simple para pruebas
-├── .env             # Variables de entorno (excluido de git)
-└── README.md
+│   ├── api/               # Definición de endpoints API
+│   ├── core/              # Configuración central
+│   ├── db/                # Configuración de base de datos
+│   ├── models/            # Modelos SQLAlchemy
+│   ├── schemas/           # Esquemas Pydantic
+│   ├── services/          # Servicios (búsqueda, autenticación, etc.)
+│   └── utils/             # Utilidades generales
+├── data/                  # Archivos de datos
+│   └── docs/              # Documentos legales
+│       ├── pdf/           # Documentos en formato PDF
+│       └── txt/           # Documentos en formato texto
+├── tests/                 # Tests unitarios e integración
+│── utils/                 # Utilidades para procesamiento de documentos
+│── alembic/               # Migraciones de base de datos
+│── .env                   # Variables de entorno
+└── requirements.txt       # Dependencias
 ```
 
-## Configuración del entorno
+## Configuración del Entorno
 
-1. Crea un entorno virtual:
+1. **Crear un entorno virtual**:
    ```bash
    python -m venv venv
    source venv/bin/activate  # En Windows: venv\Scripts\activate
    ```
 
-2. Instala las dependencias:
+2. **Instalar dependencias**:
    ```bash
-   pip install -r ../requirements.txt
+   pip install -r requirements.txt
    ```
 
-3. Configura las variables de entorno:
-   ```bash
-   cp .env.example .env
-   # Edita .env con tus credenciales
+3. **Configurar variables de entorno**:
+   - Crea un archivo `.env` en la carpeta `backend/` con las siguientes variables:
+   ```
+   DATABASE_URL=sqlite:///./test.db
+   # O para PostgreSQL:
+   # DATABASE_URL=postgresql://user:password@localhost/dbname
+   OPENAI_API_KEY=tu_api_key
+   SECRET_KEY=clave_secreta_para_jwt
+   ALGORITHM=HS256
+   ACCESS_TOKEN_EXPIRE_MINUTES=30
    ```
 
 ## Ejecución
 
-Para ejecutar el servidor, **asegúrate de estar en el directorio raíz del proyecto** y ejecuta:
+1. **Desde el directorio raíz del proyecto**:
+   ```bash
+   cd backend
+   python run.py
+   ```
+   O directamente con uvicorn:
+   ```bash
+   uvicorn app.main:app --reload --host 127.0.0.1 --port 12345
+   ```
 
-```bash
-python backend/run.py
-```
+2. **Para cargar documentos en la base de datos**:
+   ```bash
+   python load_documents.py --create-tables
+   ```
 
-O, alternativamente, puedes entrar al directorio `backend` y ejecutar:
+## Optimización de Búsqueda BM25 🔍
 
-```bash
-cd backend
-python run.py
-```
+Recientemente hemos optimizado el sistema de búsqueda para mejorar la precisión y eficiencia con las siguientes mejoras:
 
-Para probar que el servidor funciona correctamente, también puedes ejecutar:
+### 1. Parámetros Ajustados
 
-```bash
-cd backend
-python test_server.py
-```
+- **k1 = 1.5** (antes 1.2): Controla la importancia de la frecuencia del término en un documento. Un valor más alto da más peso a la frecuencia.
+- **b = 0.75**: Controla el impacto de la longitud del documento en la relevancia. 
 
-El servidor estará disponible en la dirección y puerto configurados en `.env` (por defecto http://127.0.0.1:12345).
+Estas modificaciones mejoran la precisión para documentos legales en español, priorizando mejor la relevancia.
 
-## API Docs
+### 2. Sistema de Caché de Consultas
 
-La documentación interactiva de la API estará disponible en:
-- http://127.0.0.1:12345/docs (Swagger UI)
-- http://127.0.0.1:12345/redoc (ReDoc)
+Hemos implementado un sistema de caché de consultas usando SQLite que:
 
-## Solución de problemas
+- Almacena resultados de búsquedas previas 
+- Reduce dramáticamente el tiempo de respuesta para consultas repetidas (mejoras de 17ms a 0.1ms)
+- Gestiona automáticamente la expiración del caché (por defecto 24 horas)
 
-Si encuentras errores al iniciar el servidor:
+### 3. Indexación Optimizada
 
-1. **Problemas de puerto**: El puerto configurado puede estar en uso. Prueba cambiando el puerto en el archivo `.env` a otro número (como 12345, 54321, etc.)
+- El índice BM25 se mantiene en memoria
+- Se recalcula automáticamente solo cuando hay cambios en la base de datos
+- Permite indexación específica para consultas filtradas
+- Reduce el tiempo de procesamiento para búsquedas frecuentes
 
-2. **Problemas de base de datos**: Por defecto se usa SQLite para desarrollo. Si deseas usar PostgreSQL, descomenta la línea correspondiente en `.env`.
+### Pruebas de Rendimiento
 
-3. **Problemas de importación**: Asegúrate de estar ejecutando el servidor desde el directorio correcto. El script `run.py` está diseñado para manejar esto automáticamente.
-
-4. **Problemas de dependencias**: Verifica que todas las dependencias estén instaladas correctamente con `pip list`.
-
-## Pruebas
+El script `test_search.py` permite evaluar el rendimiento con diferentes:
+- Configuraciones de parámetros (k1, b)
+- Consultas de prueba
+- Medición de tiempos de respuesta con y sin caché
 
 Para ejecutar las pruebas:
+```bash
+python test_search.py
+```
+
+## Documentación API
+
+La documentación interactiva está disponible en:
+
+- Swagger UI: [http://127.0.0.1:12345/docs](http://127.0.0.1:12345/docs)
+- ReDoc: [http://127.0.0.1:12345/redoc](http://127.0.0.1:12345/redoc)
+
+## Solución de Problemas
+
+### Conflictos de Puertos
+
+Si el puerto 12345 está ocupado, puedes cambiarlo en `config.py` o especificarlo en el comando:
+```bash
+uvicorn app.main:app --port 10000
+```
+
+### Problemas de Base de Datos
+
+Para reiniciar la base de datos:
+```bash
+rm backend/test.db
+python -c "from app.db.database import Base, engine; Base.metadata.create_all(bind=engine)"
+```
+
+### Errores de Importación
+
+Si hay errores de importación, verifica:
+1. Que estás ejecutando desde el directorio correcto (backend/)
+2. Que las dependencias están instaladas
+3. Que el archivo `__init__.py` existe en todos los paquetes
+
+### Problemas con el Caché
+
+Si encuentras problemas con las respuestas en caché:
+```bash
+rm -rf backend/cache
+```
+
+## Ejecución de Tests
 
 ```bash
 cd backend
 pytest
-```
-
-## Características principales
-
-1. **Gestión de documentos legales**: CRUD para documentos legales en la base de datos
-2. **Búsqueda mediante BM25**: Algoritmo de búsqueda para recuperar documentos relevantes
-3. **Generación de respuestas con GPT**: Utiliza modelos de lenguaje para generar respuestas contextuales
-4. **Evaluación de confianza**: Determina si una respuesta tiene suficiente calidad o necesita revisión humana
-5. **Procesamiento asíncrono**: Las consultas se procesan en segundo plano para mejorar la experiencia del usuario
-
-## Endpoints principales
-
-- `POST /api/queries/`: Crea una nueva consulta legal
-- `GET /api/queries/{query_id}`: Obtiene el estado y respuesta de una consulta
-- `POST /api/documents/`: Crea un nuevo documento legal
-- `GET /api/documents/`: Lista documentos legales con filtros opcionales
-- `POST /api/documents/search`: Busca documentos legales por texto 
+``` 
