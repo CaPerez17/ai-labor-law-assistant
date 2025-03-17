@@ -262,6 +262,48 @@ Para ejecutar las pruebas:
 python test_search.py
 ```
 
+## Optimización del Prompt para GPT 🧠
+
+Para mejorar la calidad de las respuestas legales, se han implementado las siguientes optimizaciones en el prompt para GPT:
+
+### Mejoras implementadas
+
+1. **Instrucciones más explícitas**: Se reformuló el prompt para asegurar que GPT solo utilice información de los documentos legales proporcionados, sin inventar o añadir conocimiento externo.
+
+2. **Estructura mejorada**: Las respuestas ahora siguen un formato consistente:
+   - **Respuesta Directa**: Respuesta concisa y clara a la consulta
+   - **Fundamento Legal**: Explicación detallada con citas a documentos específicos
+   - **Referencias Legales**: Lista completa de fuentes utilizadas
+
+3. **Formato de documentos optimizado**: 
+   - Priorización de contenido relevante en documentos extensos
+   - Eliminación de redundancias entre documentos
+   - Extracción inteligente de párrafos clave
+
+4. **Control de confianza**: 
+   - Sistema de evaluación de confianza (0-1) para cada respuesta
+   - Advertencia automática para respuestas con baja confianza
+   - Indicación clara cuando la información disponible es insuficiente
+
+5. **Citación precisa**:
+   - Referencias exactas a artículos y leyes
+   - Citas explícitas a los documentos fuente
+   - Formato destacado para facilitar la identificación
+
+### Pruebas y validación
+
+Se han desarrollado scripts de prueba para verificar la calidad de las respuestas:
+- `test_optimized_gpt_prompt.py`: Prueba exhaustiva de todos los aspectos del prompt
+- `test_simple_prompt.py`: Prueba rápida para verificar el funcionamiento básico
+
+Para ejecutar las pruebas:
+```bash
+cd backend
+python test_simple_prompt.py
+```
+
+> **Nota**: Es necesario configurar correctamente la API key de OpenAI en el archivo `.env` antes de ejecutar las pruebas.
+
 ## Documentación API
 
 La documentación interactiva está disponible en:

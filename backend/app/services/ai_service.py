@@ -3,6 +3,13 @@ Servicio de IA para Generación de Respuestas
 -----------------------------------------
 Este módulo implementa la integración con modelos GPT para generar
 respuestas a consultas sobre derecho laboral.
+
+Mejoras implementadas en optimización de prompt:
+1. Instrucciones más explícitas sobre usar SOLO información de documentos proporcionados
+2. Estructura mejorada para las respuestas legales con secciones claramente definidas
+3. Mejor formato para las referencias legales y citaciones
+4. Manejo optimizado de casos con información insuficiente
+5. Evaluación de confianza más precisa
 """
 
 import os
@@ -144,7 +151,9 @@ class AIService:
         prompt: str, 
         system_message: str, 
         max_tokens: int = 1200,
-        temperature: float = 0.2
+        temperature: float = 0.2,
+        model: str = None,
+        timeout: int = 60
     ) -> Tuple[Optional[str], Optional[str]]:
         """
         Genera una respuesta utilizando la API de OpenAI con manejo de errores y reintentos.
@@ -154,6 +163,8 @@ class AIService:
             system_message: Mensaje del sistema para establecer el rol
             max_tokens: Número máximo de tokens en la respuesta
             temperature: Temperatura para controlar la creatividad (0-1)
+            model: Modelo a utilizar (si es None, se usa el predeterminado)
+            timeout: Tiempo máximo de espera para la respuesta en segundos
             
         Returns:
             Tupla con (respuesta, error)
@@ -164,20 +175,42 @@ class AIService:
             if not self._initialize_client():
                 return None, "No se pudo inicializar el cliente de OpenAI. Verifica tu API key."
         
+        # Usar el modelo especificado o el predeterminado
+        model_to_use = model or self.model
+        
+        # Limpiar y truncar prompts si son muy largos
+        # GPT-4 tiene un límite aproximado de 8K tokens para prompt + respuesta
+        if len(prompt) > 32000:  # aproximadamente 8K tokens
+            logger.warning(f"⚠️ Prompt demasiado largo ({len(prompt)} caracteres). Truncando...")
+            prompt = prompt[:32000]
+        
         attempts = 0
         while attempts < self.max_retries:
             try:
+                logger.info(f"🔄 Enviando solicitud a OpenAI (intento {attempts+1}/{self.max_retries})")
+                start_time = time.time()
+                
                 response = self.client.chat.completions.create(
-                    model=self.model,
+                    model=model_to_use,
                     messages=[
                         {"role": "system", "content": system_message},
                         {"role": "user", "content": prompt}
                     ],
                     temperature=temperature,
-                    max_tokens=max_tokens
+                    max_tokens=max_tokens,
+                    timeout=timeout
                 )
                 
-                return response.choices[0].message.content, None
+                elapsed_time = time.time() - start_time
+                logger.info(f"✅ Respuesta generada en {elapsed_time:.2f} segundos")
+                
+                # Verificar que la respuesta no esté vacía
+                content = response.choices[0].message.content
+                if not content or content.strip() == "":
+                    logger.warning("⚠️ OpenAI devolvió una respuesta vacía")
+                    return None, "La API de OpenAI devolvió una respuesta vacía"
+                    
+                return content, None
                 
             except Exception as e:
                 error_str = str(e)
@@ -200,7 +233,22 @@ class AIService:
                     logger.info(f"Reintentando en {wait_time} segundos...")
                     time.sleep(wait_time)
                 
+                elif "context_length_exceeded" in error_str.lower():
+                    logger.error("❌ Error: Longitud de contexto excedida")
+                    # Intentar reducir el tamaño del prompt
+                    prompt_length = len(prompt)
+                    new_length = int(prompt_length * 0.8)  # Reducir al 80%
+                    logger.info(f"Reduciendo longitud del prompt de {prompt_length} a {new_length} caracteres")
+                    prompt = prompt[:new_length]
+                    # No incrementar contador de intentos para este caso
+                    continue
+                
+                elif "content_filter" in error_str.lower():
+                    logger.error("❌ Error: Filtro de contenido activado")
+                    return None, "El contenido fue bloqueado por los filtros de seguridad de OpenAI"
+                
                 else:
+                    logger.error(f"❌ Error desconocido: {error_str}")
                     return None, f"Error inesperado: {error_str}"
                 
             attempts += 1
@@ -397,4 +445,389 @@ class AIService:
             }
         }
         
-        return formatted_response 
+        return formatted_response
+
+    def optimize_document_context(self, search_results: List[Dict[str, Any]], 
+                                max_documents: int = 5, 
+                                max_chars_per_doc: int = 2000) -> List[Dict[str, Any]]:
+        """
+        Optimiza los documentos para prepararlos para GPT, priorizando la información
+        más relevante y eliminando contenido redundante.
+        
+        Args:
+            search_results: Resultados de búsqueda BM25
+            max_documents: Número máximo de documentos a incluir
+            max_chars_per_doc: Longitud máxima de contenido por documento
+            
+        Returns:
+            Lista de documentos optimizados para enviar a GPT
+        """
+        if not search_results:
+            return []
+        
+        # Priorizar documentos más relevantes
+        top_results = sorted(search_results[:max_documents*2], key=lambda x: float(x.get("relevance_score", 0)), reverse=True)[:max_documents]
+        
+        # Eliminar documentos duplicados o con contenido muy similar
+        seen_content = set()
+        unique_docs = []
+        
+        for doc in top_results:
+            # Crear una representación simplificada del contenido para comparación
+            content_sample = doc.get("content", "")[:300].lower() if doc.get("content") else ""
+            if not content_sample or hash(content_sample) not in seen_content:
+                if content_sample:
+                    seen_content.add(hash(content_sample))
+                unique_docs.append(doc)
+        
+        # Crear contexto estructurado
+        optimized_documents = []
+        
+        for i, doc in enumerate(unique_docs, 1):
+            # Extraer identificadores para citas
+            doc_id = f"[Doc{i}]"
+            legal_reference = ""
+            
+            # Determinar tipo de referencia específica basado en document_type
+            doc_type = str(doc.get("document_type", "")).lower()
+            ref_number = doc.get('reference_number', 'N/A')
+            
+            if "ley" in doc_type:
+                legal_reference = f"Ley {ref_number}"
+            elif "decreto" in doc_type:
+                legal_reference = f"Decreto {ref_number}"
+            elif "sentencia" in doc_type:
+                legal_reference = f"Sentencia {ref_number}"
+            elif "código" in doc_type or "cst" in doc_type.lower():
+                if "art" in ref_number.lower():
+                    legal_reference = f"Código Sustantivo del Trabajo, {ref_number}"
+                else:
+                    legal_reference = f"Código Sustantivo del Trabajo, Artículo {ref_number}"
+            elif "resolución" in doc_type:
+                legal_reference = f"Resolución {ref_number}"
+            elif "circular" in doc_type:
+                legal_reference = f"Circular {ref_number}"
+            else:
+                legal_reference = ref_number
+            
+            # Limpiar y formatear el contenido
+            content = doc.get("content", "").strip()
+            if not content:
+                content = doc.get("snippet", "").strip()
+            
+            # Extraer las partes más relevantes del contenido
+            if len(content) > max_chars_per_doc:
+                # Dividir en párrafos
+                paragraphs = [p.strip() for p in re.split(r'\n\s*\n', content) if p.strip()]
+                
+                # Priorizar párrafos con palabras clave relacionadas con la consulta
+                # (Esta es una simplificación - en una implementación más completa
+                # se podría usar embeddings o similaridad semántica)
+                selected_content = []
+                chars_count = 0
+                
+                # Asegurar que el primer párrafo siempre se incluya (a menudo contiene definiciones)
+                if paragraphs:
+                    first_para = paragraphs[0]
+                    selected_content.append(first_para)
+                    chars_count += len(first_para)
+                
+                # Añadir párrafos restantes hasta alcanzar el límite
+                for para in paragraphs[1:]:
+                    if chars_count + len(para) + 1 <= max_chars_per_doc:
+                        selected_content.append(para)
+                        chars_count += len(para) + 1  # +1 por el separador
+                    else:
+                        break
+                
+                content = "\n\n".join(selected_content)
+                if len(content) < len(doc.get("content", "")):
+                    content += "..."
+            
+            # Crear documento estructurado
+            optimized_doc = {
+                "id": doc_id,
+                "titulo": doc.get("title", "Documento sin título"),
+                "referencia_legal": legal_reference,
+                "tipo_documento": doc.get("document_type", "No especificado"),
+                "relevancia": round(float(doc.get("relevance_score", 0)), 3),
+                "contenido": content,
+                "fuente_completa": doc.get("source", "No especificada"),
+                "fecha_documento": doc.get("date", "No especificada")
+            }
+            
+            optimized_documents.append(optimized_doc)
+        
+        return optimized_documents
+
+    def generate_legal_response(
+        self,
+        query_text: str,
+        search_results: List[Dict[str, Any]],
+        max_documents: int = 5,
+        max_tokens: int = 1500,
+        confidence_threshold: float = 0.7,
+        model: str = None,
+        timeout: int = 60
+    ) -> Tuple[str, float, List[Dict[str, Any]], bool]:
+        """
+        Genera una respuesta legal detallada a partir de una consulta y resultados de búsqueda BM25.
+        
+        Este método está optimizado para consultas legales que requieren citación precisa
+        de fuentes y alto nivel de precisión.
+        
+        Args:
+            query_text: Consulta del usuario
+            search_results: Resultados de búsqueda BM25
+            max_documents: Número máximo de documentos a incluir
+            max_tokens: Tokens máximos para la respuesta
+            confidence_threshold: Umbral para determinar si una respuesta es confiable
+            model: Modelo específico a utilizar (si es None, usa el predeterminado)
+            timeout: Tiempo máximo de espera para la respuesta en segundos
+            
+        Returns:
+            Tupla con:
+            - respuesta_formateada: Texto de la respuesta 
+            - puntuación_confianza: Nivel de confianza (0-1)
+            - documentos_citados: Lista de documentos usados en la respuesta
+            - requiere_revision: Indicador de si la respuesta necesita revisión humana
+        """
+        if not search_results:
+            return "No se encontraron documentos legales relevantes para tu consulta. Por favor, reformula tu pregunta o consulta a un especialista en derecho laboral.", 0.0, [], True
+        
+        # Verificar cliente OpenAI
+        if not self.client and not self._initialize_client():
+            logger.error("❌ No se pudo inicializar el cliente de OpenAI")
+            return "Lo siento, hay un problema técnico con nuestro servicio. Por favor, intenta más tarde o contacta a un especialista en derecho laboral para tu consulta.", 0.0, [], True
+        
+        # Optimizar documentos para GPT
+        optimized_docs = self.optimize_document_context(
+            search_results=search_results,
+            max_documents=max_documents
+        )
+        
+        # Formatear documentos para JSON
+        formatted_context = {
+            "consulta_legal": query_text,
+            "documentos_relevantes": optimized_docs,
+            "total_documentos": len(search_results),
+            "documentos_incluidos": len(optimized_docs),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Sistema de prompt optimizado para respuestas legales
+        system_prompt = """
+        Eres un asistente legal especializado en derecho laboral colombiano con amplia experiencia jurídica.
+        Tu ÚNICA función es proporcionar respuestas precisas basadas EXCLUSIVAMENTE en los documentos legales proporcionados.
+        
+        ## REGLAS FUNDAMENTALES (CRÍTICAS - DEBES SEGUIRLAS SIN EXCEPCIÓN):
+        
+        1. NUNCA inventes información, leyes, artículos o interpretaciones que NO aparezcan explícitamente en los documentos proporcionados.
+        2. NUNCA utilices tu conocimiento general sobre leyes - SOLO puedes usar la información que aparece en los documentos.
+        3. Si los documentos proporcionados no contienen información suficiente, DEBES indicarlo claramente.
+        4. SIEMPRE cita las fuentes específicas usando el formato [DocX] después de cada afirmación legal importante.
+        5. SIEMPRE incluye referencias legales exactas (números de ley, artículos específicos) tal como aparecen en los documentos.
+        
+        ## ESTRUCTURA OBLIGATORIA DE LA RESPUESTA:
+        
+        **RESPUESTA DIRECTA**:
+        Comienza con una respuesta concisa y directa a la consulta legal.
+        
+        **FUNDAMENTO LEGAL**:
+        Explica detalladamente el fundamento legal citando documentos específicos.
+        
+        **REQUISITOS Y CONDICIONES** (si aplica):
+        Enumera requisitos, plazos o condiciones especiales.
+        
+        **REFERENCIAS LEGALES**:
+        Lista completa de documentos citados con sus referencias legales exactas.
+        Ejemplo:
+        • [Doc1] Ley 1010 de 2006, Artículo 2 - Definición de acoso laboral
+        • [Doc2] Código Sustantivo del Trabajo, Artículo 62 - Terminación del contrato
+        
+        ## CUANDO NO HAY INFORMACIÓN SUFICIENTE:
+        
+        Si la información proporcionada es insuficiente para responder adecuadamente:
+        1. Indica específicamente qué información falta para responder completamente
+        2. Proporciona la información parcial que SÍ está disponible en los documentos
+        3. Asigna una puntuación de confianza baja (0.0-0.3)
+        4. Incluye este texto exacto al inicio: "ADVERTENCIA: La información disponible es limitada para responder completamente a esta consulta."
+        
+        ## EVALUACIÓN DE CONFIANZA:
+        
+        Al final de tu respuesta, evalúa tu confianza en una escala de 0 a 1:
+        - 0.0-0.3: Información muy insuficiente o no relevante
+        - 0.4-0.6: Información parcial con algunas lagunas importantes
+        - 0.7-0.9: Información suficiente con documentos relevantes
+        - 1.0: Información completa y precisa con documentos altamente relevantes
+        
+        Al final, DEBES incluir tu evaluación en el siguiente formato exacto:
+        "CONFIANZA: [puntuación]"
+        """
+        
+        # Convertir contexto a formato JSON con indentación para mejor legibilidad
+        context_json = json.dumps(formatted_context, ensure_ascii=False, indent=2)
+        
+        # Crear prompt con instrucciones detalladas
+        user_prompt = f"""
+        ## CONSULTA LEGAL
+        
+        {query_text}
+        
+        ## DOCUMENTOS LEGALES RELEVANTES
+        
+        {context_json}
+        
+        ## INSTRUCCIONES ESPECÍFICAS
+        
+        IMPORTANTE:
+        - Responde basándote ÚNICAMENTE en los documentos proporcionados.
+        - Si no encuentras información suficiente, indícalo claramente.
+        - Cita las fuentes exactas para cada afirmación legal.
+        - Utiliza un lenguaje claro y accesible para personas sin formación jurídica.
+        - Estructura tu respuesta según el formato requerido.
+        - Incluye la sección "REFERENCIAS LEGALES" con todas las fuentes utilizadas.
+        
+        Recuerda evaluar la confianza de tu respuesta al final.
+        """
+        
+        # Generar respuesta usando el método con manejo de errores
+        model_to_use = model or self.model
+        response_text, error = self.generate_gpt_response(
+            prompt=user_prompt,
+            system_message=system_prompt,
+            max_tokens=max_tokens,
+            temperature=0.1,  # Temperatura más baja para respuestas más deterministas
+            model=model_to_use,
+            timeout=timeout
+        )
+        
+        # Si hubo un error, devolver mensaje de error
+        if error:
+            logger.error(f"❌ Error al generar respuesta legal: {error}")
+            return (
+                f"Lo siento, no pude procesar tu consulta legal en este momento debido a un error técnico. Por favor, intenta nuevamente más tarde o consulta a un especialista en derecho laboral.",
+                0.0,
+                [],
+                True
+            )
+        
+        # Extraer la puntuación de confianza
+        confidence_score = self._extract_confidence_score(response_text)
+        
+        # Limpiar la respuesta y formatear referencias
+        clean_response = self._clean_response(response_text)
+        formatted_response = self._format_enhanced_legal_references(clean_response)
+        
+        # Determinar si requiere revisión humana
+        requires_human_review = confidence_score < confidence_threshold
+        
+        # Extraer documentos citados
+        citations = self.extract_document_citations(formatted_response)
+        cited_documents = []
+        
+        for i, doc in enumerate(optimized_docs, 1):
+            doc_id = f"Doc{i}"
+            if doc_id in citations:
+                cite_index = next((idx for idx, res in enumerate(search_results) 
+                                if res.get("title") == doc.get("titulo")), None)
+                
+                if cite_index is not None:
+                    original_doc = search_results[cite_index]
+                    cited_documents.append({
+                        "id": original_doc.get("document_id", i),
+                        "title": original_doc.get("title", f"Documento {i}"),
+                        "reference": original_doc.get("reference_number", "N/A"),
+                        "relevance": original_doc.get("relevance_score", 0)
+                    })
+        
+        # Si la confianza es muy baja, agregar disclaimer
+        if confidence_score < 0.4:
+            formatted_response = self._add_low_confidence_disclaimer(formatted_response)
+        
+        return formatted_response, confidence_score, cited_documents, requires_human_review
+
+    def _format_enhanced_legal_references(self, response_text: str) -> str:
+        """
+        Mejora el formato de las referencias legales para mayor claridad y consistencia.
+        
+        Args:
+            response_text: Texto de la respuesta generada
+            
+        Returns:
+            Texto con referencias legales reformateadas
+        """
+        # Destacar referencias a documentos
+        formatted_text = re.sub(r'\[Doc(\d+)\]', r'[📄 Doc\1]', response_text)
+        
+        # Destacar referencias a artículos
+        formatted_text = re.sub(
+            r'(?i)(artículo|art\.|art)\s+(\d+[a-z]?)(\s+del\s+(?:código|cst|ley|decreto))?', 
+            r'**Artículo \2\3**', 
+            formatted_text
+        )
+        
+        # Destacar referencias a leyes
+        formatted_text = re.sub(
+            r'(?i)(ley)\s+(\d+)(\s+de\s+\d{4})?', 
+            r'**Ley \2\3**', 
+            formatted_text
+        )
+        
+        # Destacar referencias a decretos
+        formatted_text = re.sub(
+            r'(?i)(decreto)\s+(\d+)(\s+de\s+\d{4})?', 
+            r'**Decreto \2\3**', 
+            formatted_text
+        )
+        
+        # Destacar referencias a sentencias
+        formatted_text = re.sub(
+            r'(?i)(sentencia)\s+([a-z]-\d+)(\s+de\s+\d{4})?', 
+            r'**Sentencia \2\3**', 
+            formatted_text
+        )
+        
+        # Formatear sección de referencias legales
+        if "REFERENCIAS LEGALES" in formatted_text or "Referencias Legales" in formatted_text:
+            # Buscar la sección de referencias legales usando regex
+            pattern = r'(?:REFERENCIAS LEGALES|Referencias Legales)[:\s]*\n((?:.+\n)+)'
+            match = re.search(pattern, formatted_text)
+            
+            if match:
+                ref_section = match.group(0)
+                formatted_ref_section = ref_section
+                
+                # Reformatear cada línea de la sección
+                lines = ref_section.split('\n')
+                formatted_lines = ["## " + lines[0].strip()]  # Destacar el título
+                
+                for line in lines[1:]:
+                    if line.strip():
+                        # Mejorar el formato de cada referencia
+                        formatted_line = re.sub(r'^\s*-?\s*', '• ', line)
+                        formatted_line = re.sub(r'\[Doc(\d+)\]', r'[📄 Doc\1]', formatted_line)
+                        formatted_lines.append(formatted_line)
+                
+                formatted_ref_section = '\n'.join(formatted_lines)
+                formatted_text = formatted_text.replace(ref_section, formatted_ref_section)
+        
+        return formatted_text
+
+    def _add_low_confidence_disclaimer(self, response_text: str) -> str:
+        """
+        Agrega un disclaimer a respuestas con baja confianza.
+        
+        Args:
+            response_text: Texto de la respuesta generada
+            
+        Returns:
+            Texto con disclaimer agregado
+        """
+        disclaimer = """
+⚠️ **ADVERTENCIA IMPORTANTE**: Esta respuesta se basa en información limitada o parcial encontrada en los documentos disponibles. 
+Es posible que no represente una orientación legal completa. Para obtener asesoramiento legal preciso y adaptado a su situación específica, 
+se recomienda consultar a un profesional especializado en derecho laboral.
+"""
+        
+        return disclaimer + "\n\n" + response_text 
