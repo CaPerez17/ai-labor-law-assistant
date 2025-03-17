@@ -55,11 +55,56 @@ backend/
    DATABASE_URL=sqlite:///./test.db
    # O para PostgreSQL:
    # DATABASE_URL=postgresql://user:password@localhost/dbname
-   OPENAI_API_KEY=tu_api_key
+   OPENAI_API_KEY=sk-tu-api-key-de-openai
+   GPT_MODEL=gpt-4o
    SECRET_KEY=clave_secreta_para_jwt
    ALGORITHM=HS256
    ACCESS_TOKEN_EXPIRE_MINUTES=30
    ```
+
+## Configuración de OpenAI 🔑
+
+El backend utiliza la API de OpenAI para generar respuestas fundamentadas en documentos legales. Para configurar correctamente OpenAI:
+
+1. **Obtener una API Key**:
+   - Crea una cuenta en [OpenAI](https://platform.openai.com/)
+   - Genera una API key en la sección [API Keys](https://platform.openai.com/api-keys)
+
+2. **Configurar la API Key**:
+   - Agrega tu API key al archivo `.env`:
+     ```
+     OPENAI_API_KEY=sk-tu-api-key-de-openai
+     GPT_MODEL=gpt-4o  # Puedes usar gpt-3.5-turbo para reducir costos
+     ```
+
+3. **Verificar la configuración**:
+   - Ejecuta el script de prueba para verificar que todo funciona correctamente:
+     ```bash
+     python test_openai_config.py
+     ```
+   - Este script ejecutará pruebas de:
+     - Validación de la configuración
+     - Inicialización del servicio de IA
+     - Validación de la API key con OpenAI
+     - Una prueba simple de generación de texto
+
+4. **Características del Servicio de IA**:
+   - **Manejo de errores robusto**: Reintentos automáticos con backoff exponencial para errores temporales
+   - **Validación de API Key**: Verificación de formato y validez de la API key
+   - **Formateo de contexto BM25**: Estructuración de resultados de búsqueda para GPT
+   - **Optimización de prompts**: Mejora la precisión de las respuestas con instrucciones específicas
+   - **Control de costos**: Límites de tokens y manejo eficiente del contexto
+   - **Evaluación de confianza**: Detección automática de casos que requieren revisión humana
+   - **Formateo de referencias legales**: Extracción y estructuración de citas a documentos legales
+
+El módulo `app/services/ai_service.py` contiene la implementación del servicio de IA, con métodos específicos para la integración BM25+GPT. Los principales métodos incluyen:
+
+- `format_bm25_context()`: Formatea resultados BM25 para enviar a GPT
+- `generate_gpt_response()`: Maneja la comunicación con OpenAI API
+- `generate_response()`: Método principal para generar respuestas legales
+- `format_response_with_sources()`: Asocia respuestas con fuentes legales
+
+El archivo `config.py` contiene la configuración centralizada y validación de variables de entorno.
 
 ## Ejecución
 
@@ -269,6 +314,13 @@ Si encuentras errores relacionados con la API de OpenAI:
 1. Verifica que tu API key sea válida y esté configurada en `.env`
 2. Asegúrate de tener crédito disponible en tu cuenta
 3. Verifica la disponibilidad del modelo configurado
+4. Ejecuta el script de diagnóstico: `python test_openai_config.py`
+
+### Códigos de Error Comunes de OpenAI
+
+- **401 (Unauthorized)**: API key inválida o expirada
+- **429 (Too Many Requests)**: Límite de tasa excedido
+- **500, 502, 503, 504**: Errores del servidor de OpenAI
 
 ## Ejecución de Tests
 

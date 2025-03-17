@@ -8,25 +8,75 @@ respuestas a consultas sobre derecho laboral.
 import os
 import json
 import re
-from typing import List, Dict, Any, Optional, Tuple
+import time
+import logging
+from typing import List, Dict, Any, Optional, Tuple, Union
 from openai import OpenAI
 from datetime import datetime
 
+import sys
+from pathlib import Path
+# Asegurar que backend/ esté en sys.path para poder importar el módulo config
+backend_dir = Path(__file__).resolve().parent.parent.parent
+if str(backend_dir) not in sys.path:
+    sys.path.append(str(backend_dir))
+
+from config import OPENAI_API_KEY, GPT_MODEL, validate_config
 from ..schemas.legal_document import LegalDocumentResponse
 from ..schemas.query import QueryResponse, QueryStatus
 
+# Configurar logging
+logger = logging.getLogger("ai_service")
 
 class AIService:
     """Servicio para generación de respuestas basadas en IA"""
 
     def __init__(self):
         """Inicializa el cliente de OpenAI y configura el modelo"""
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY no está configurada en las variables de entorno")
+        self.api_key = OPENAI_API_KEY
+        self.model = GPT_MODEL
+        self.client = None
+        self.max_retries = 3
+        self.retry_delay = 2  # segundos
+        
+        # Intentar inicializar el cliente
+        self._initialize_client()
+        
+    def _initialize_client(self) -> bool:
+        """
+        Inicializa el cliente de OpenAI.
+        
+        Returns:
+            bool: True si la inicialización fue exitosa, False si hubo un error
+        """
+        if not self.api_key or self.api_key in ["your_openai_api_key_here", "sk-your-actual-openai-api-key"]:
+            logger.error("❌ OPENAI_API_KEY no configurada o inválida")
+            return False
             
-        self.client = OpenAI(api_key=api_key)
-        self.model = os.getenv("GPT_MODEL", "gpt-4o")
+        try:
+            self.client = OpenAI(api_key=self.api_key)
+            return True
+        except Exception as e:
+            logger.error(f"❌ Error al inicializar el cliente de OpenAI: {str(e)}")
+            return False
+    
+    def is_api_key_valid(self) -> bool:
+        """
+        Verifica si la API key es válida haciendo una petición mínima.
+        
+        Returns:
+            bool: True si la API key es válida, False si no lo es
+        """
+        if not self.client:
+            return False
+            
+        try:
+            # Hacer una petición mínima para verificar la API key
+            response = self.client.models.list(limit=1)
+            return True
+        except Exception as e:
+            logger.error(f"❌ Error al verificar la API key: {str(e)}")
+            return False
         
     def format_bm25_context(self, query_text: str, search_results: List[Dict[str, Any]], 
                            max_documents: int = 5, max_chars_per_doc: int = 2000) -> Dict[str, Any]:
@@ -89,6 +139,74 @@ class AIService:
         
         return context
         
+    def generate_gpt_response(
+        self, 
+        prompt: str, 
+        system_message: str, 
+        max_tokens: int = 1200,
+        temperature: float = 0.2
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Genera una respuesta utilizando la API de OpenAI con manejo de errores y reintentos.
+        
+        Args:
+            prompt: Prompt para enviar a GPT
+            system_message: Mensaje del sistema para establecer el rol
+            max_tokens: Número máximo de tokens en la respuesta
+            temperature: Temperatura para controlar la creatividad (0-1)
+            
+        Returns:
+            Tupla con (respuesta, error)
+            - Si hay éxito: (respuesta, None)
+            - Si hay error: (None, mensaje_error)
+        """
+        if not self.client:
+            if not self._initialize_client():
+                return None, "No se pudo inicializar el cliente de OpenAI. Verifica tu API key."
+        
+        attempts = 0
+        while attempts < self.max_retries:
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": system_message},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+                
+                return response.choices[0].message.content, None
+                
+            except Exception as e:
+                error_str = str(e)
+                logger.error(f"❌ Error al generar respuesta: {error_str}")
+                
+                # Analizar el tipo de error basándonos en el string
+                if "401" in error_str:
+                    logger.error("❌ Error 401: Problema de autenticación. Verifica tu API key.")
+                    return None, f"Error de autenticación con OpenAI: {error_str}"
+                
+                elif "429" in error_str:
+                    logger.warning(f"⚠️ Error 429: Límite de tasa excedido")
+                    wait_time = (2 ** attempts) * self.retry_delay  # Backoff exponencial
+                    logger.info(f"Reintentando en {wait_time} segundos...")
+                    time.sleep(wait_time)
+                
+                elif any(code in error_str for code in ["500", "502", "503", "504"]):
+                    logger.error(f"❌ Error del servidor de OpenAI: {error_str}")
+                    wait_time = (2 ** attempts) * self.retry_delay
+                    logger.info(f"Reintentando en {wait_time} segundos...")
+                    time.sleep(wait_time)
+                
+                else:
+                    return None, f"Error inesperado: {error_str}"
+                
+            attempts += 1
+            
+        return None, f"No se pudo completar la solicitud después de {self.max_retries} intentos."
+        
     def generate_response(
         self, 
         query_text: str, 
@@ -110,6 +228,15 @@ class AIService:
             - Indicador de si necesita revisión humana
             - Razón de la revisión (opcional)
         """
+        # Verificar que la API key es válida
+        if not validate_config():
+            return (
+                "Lo siento, hay un problema con la configuración del sistema. Un especialista revisará tu caso.",
+                0.0,
+                True,
+                "Error de configuración de OpenAI API"
+            )
+            
         # Formatear el contexto de BM25 para GPT
         context = self.format_bm25_context(query_text, search_results)
         
@@ -155,48 +282,44 @@ class AIService:
         Responde basándote EXCLUSIVAMENTE en los documentos proporcionados. Incluye citas específicas a los documentos [DocX] y referencia los artículos o leyes exactas mencionadas en ellos.
         """
         
-        try:
-            # Llamar a la API de OpenAI
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.2,  # Bajo para generar respuestas más consistentes y precisas
-                max_tokens=1200
-            )
-            
-            # Extraer la respuesta y la puntuación de confianza
-            response_text = response.choices[0].message.content
-            confidence_score = self._extract_confidence_score(response_text)
-            
-            # Determinar si necesita revisión humana
-            needs_human_review = confidence_score < threshold
-            review_reason = None
-            
-            if needs_human_review:
-                if confidence_score < 0.4:
-                    review_reason = "Información insuficiente en los documentos proporcionados"
-                else:
-                    review_reason = "Información parcial que requiere verificación"
-                
-            # Limpiar la respuesta para quitar la línea de confianza
-            clean_response = self._clean_response(response_text)
-            
-            # Formatear las referencias para que sean más legibles
-            clean_response = self._format_legal_references(clean_response)
-            
-            return clean_response, confidence_score, needs_human_review, review_reason
-            
-        except Exception as e:
-            # En caso de error, devolver mensaje genérico y solicitar revisión humana
+        # Generar respuesta usando el método con manejo de errores
+        response_text, error = self.generate_gpt_response(
+            prompt=user_prompt,
+            system_message=system_prompt,
+            max_tokens=1200,
+            temperature=0.2
+        )
+        
+        # Si hubo un error, devolver mensaje de error
+        if error:
+            logger.error(f"❌ Error al generar respuesta: {error}")
             return (
                 "Lo siento, no pude procesar tu consulta en este momento. Un especialista revisará tu caso.",
                 0.0,
                 True,
-                f"Error en la generación de respuesta: {str(e)}"
+                f"Error en la generación de respuesta: {error}"
             )
+        
+        # Extraer la puntuación de confianza
+        confidence_score = self._extract_confidence_score(response_text)
+        
+        # Determinar si necesita revisión humana
+        needs_human_review = confidence_score < threshold
+        review_reason = None
+        
+        if needs_human_review:
+            if confidence_score < 0.4:
+                review_reason = "Información insuficiente en los documentos proporcionados"
+            else:
+                review_reason = "Información parcial que requiere verificación"
+            
+        # Limpiar la respuesta para quitar la línea de confianza
+        clean_response = self._clean_response(response_text)
+        
+        # Formatear las referencias para que sean más legibles
+        clean_response = self._format_legal_references(clean_response)
+        
+        return clean_response, confidence_score, needs_human_review, review_reason
     
     def _extract_confidence_score(self, response_text: str) -> float:
         """Extrae la puntuación de confianza de la respuesta"""
