@@ -86,4 +86,37 @@ class QueryUpdate(BaseModel):
     confidence_score: Optional[float] = None
     needs_human_review: Optional[bool] = None
     review_reason: Optional[str] = None
-    processed_at: Optional[datetime] = None 
+    processed_at: Optional[datetime] = None
+
+
+class LegalResponse(BaseModel):
+    """
+    Esquema para respuestas del endpoint de consultas legales directas.
+    Este esquema proporciona una respuesta inmediata con referencias legales.
+    """
+    query: str = Field(..., description="Consulta original del usuario")
+    response: str = Field(..., description="Respuesta generada con fundamento legal")
+    references: List[Dict[str, Any]] = Field(default=[], description="Referencias a documentos legales utilizados")
+    confidence_score: float = Field(..., ge=0, le=1, description="Nivel de confianza en la respuesta (0-1)")
+    needs_human_review: bool = Field(default=False, description="Indica si la respuesta requiere revisión por un especialista")
+    review_reason: Optional[str] = Field(None, description="Razón por la que se requiere revisión humana")
+    processing_time_ms: float = Field(..., description="Tiempo de procesamiento en milisegundos")
+    timestamp: str = Field(..., description="Marca de tiempo de la respuesta")
+    
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "query": "¿Cuántos días de licencia de maternidad me corresponden?",
+                "response": "Según el Código Sustantivo del Trabajo, artículo 236 [Doc1], toda trabajadora en estado de embarazo tiene derecho a una licencia de 18 semanas remuneradas...",
+                "references": [
+                    {"id": 24, "title": "Código Sustantivo del Trabajo, Artículo 236", "reference": "Art. 236", "relevance": 0.92},
+                    {"id": 56, "title": "Sentencia C-005 de 2017", "reference": "SentC-005/2017", "relevance": 0.78}
+                ],
+                "confidence_score": 0.89,
+                "needs_human_review": False,
+                "review_reason": None,
+                "processing_time_ms": 1250.45,
+                "timestamp": "2023-01-01T12:00:05"
+            }
+        }
+    } 
