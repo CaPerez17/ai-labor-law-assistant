@@ -78,6 +78,52 @@ backend/
    python load_documents.py --create-tables
    ```
 
+## Integración BM25 + GPT 🧠
+
+Hemos implementado una integración completa de nuestro motor de búsqueda BM25 con GPT-4 para generar respuestas inteligentes a consultas legales.
+
+### Características Principales
+
+1. **Búsqueda de Documentos Legales Relevantes con BM25**
+   - Recuperación de documentos por relevancia
+   - Sistema de caché para consultas repetidas
+   - Parámetros optimizados (k1=1.5, b=0.75) para documentos legales
+
+2. **Formateo Estructurado para GPT**
+   - Conversión de resultados BM25 a formato JSON optimizado
+   - Extracción de metadatos clave (tipo, referencia, relevancia)
+   - Límites de contexto configurables para optimizar tokens
+
+3. **Prompt Avanzado para Respuestas Legales**
+   - Instrucciones precisas para respuestas basadas en evidencia
+   - Sistema de citas a documentos específicos [DocX]
+   - Sección de "Referencias Legales" obligatoria
+
+4. **Evaluación de Confianza**
+   - Evaluación automática de calidad de respuesta (0-1)
+   - Detección de casos que requieren revisión humana
+   - Explicación de motivos de baja confianza
+
+### Probando el Asistente Legal
+
+Para probar el asistente legal:
+
+```bash
+# Consulta específica
+python test_legal_assistant.py "¿Cuántos días de licencia de maternidad me corresponden?"
+
+# Suite completa de pruebas
+python test_legal_assistant.py
+```
+
+### Ejemplo de Respuesta Estructurada
+
+Las respuestas generadas incluyen:
+- Respuesta directa a la consulta
+- Citas específicas a los documentos legales
+- Lista de fuentes legales utilizadas
+- Puntuación de confianza de la respuesta
+
 ## Optimización de Búsqueda BM25 🔍
 
 Recientemente hemos optimizado el sistema de búsqueda para mejorar la precisión y eficiencia con las siguientes mejoras:
@@ -123,6 +169,13 @@ La documentación interactiva está disponible en:
 - Swagger UI: [http://127.0.0.1:12345/docs](http://127.0.0.1:12345/docs)
 - ReDoc: [http://127.0.0.1:12345/redoc](http://127.0.0.1:12345/redoc)
 
+### Endpoints Principales
+
+- `POST /api/queries/`: Crea una nueva consulta (procesamiento asíncrono)
+- `POST /api/queries/sync`: Crea y procesa una consulta inmediatamente (síncrono)
+- `GET /api/queries/{query_id}`: Obtiene el estado de una consulta
+- `POST /api/search/`: Búsqueda directa con BM25 (sin procesamiento GPT)
+
 ## Solución de Problemas
 
 ### Conflictos de Puertos
@@ -153,6 +206,13 @@ Si encuentras problemas con las respuestas en caché:
 ```bash
 rm -rf backend/cache
 ```
+
+### Problemas con OpenAI API
+
+Si encuentras errores relacionados con la API de OpenAI:
+1. Verifica que tu API key sea válida y esté configurada en `.env`
+2. Asegúrate de tener crédito disponible en tu cuenta
+3. Verifica la disponibilidad del modelo configurado
 
 ## Ejecución de Tests
 
