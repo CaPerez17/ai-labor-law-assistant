@@ -78,6 +78,61 @@ backend/
    python load_documents.py --create-tables
    ```
 
+## Nuevo Endpoint: Consultas Legales Directas 🔍💬
+
+Hemos implementado un nuevo endpoint `/api/ask/` que proporciona una forma rápida y directa para realizar consultas legales. Este endpoint:
+
+1. **Recibe una consulta legal del usuario**
+2. **Busca documentos relevantes utilizando BM25**
+3. **Genera una respuesta fundamentada con GPT-4**
+4. **Devuelve la respuesta con referencias a los documentos legales utilizados**
+
+### Uso del Endpoint
+
+```python
+import requests
+
+url = "http://127.0.0.1:12345/api/ask/"
+payload = {"query": "¿Qué es la estabilidad laboral reforzada?"}
+headers = {"Content-Type": "application/json"}
+
+response = requests.post(url, json=payload, headers=headers)
+result = response.json()
+
+print(result["response"])  # Respuesta generada
+print(result["references"])  # Referencias legales utilizadas
+```
+
+### Estructura de la Respuesta
+
+```json
+{
+  "query": "¿Qué es la estabilidad laboral reforzada?",
+  "response": "La estabilidad laboral reforzada es una protección especial...",
+  "references": [
+    {
+      "id": 24,
+      "title": "Sentencia T-320 de 2016",
+      "reference": "SentT-320/2016",
+      "relevance": 0.92
+    }
+  ],
+  "confidence_score": 0.85,
+  "needs_human_review": false,
+  "review_reason": null,
+  "processing_time_ms": 1250.45,
+  "timestamp": "2023-01-01T12:00:05"
+}
+```
+
+### Prueba del Endpoint
+
+Para probar rápidamente el endpoint:
+
+```bash
+python test_ask_endpoint.py "¿Cuántos días de licencia de maternidad me corresponden?"
+```
+
 ## Integración BM25 + GPT 🧠
 
 Hemos implementado una integración completa de nuestro motor de búsqueda BM25 con GPT-4 para generar respuestas inteligentes a consultas legales.
@@ -171,6 +226,7 @@ La documentación interactiva está disponible en:
 
 ### Endpoints Principales
 
+- `POST /api/ask/`: Consultas legales directas (BM25 + GPT) con respuesta inmediata
 - `POST /api/queries/`: Crea una nueva consulta (procesamiento asíncrono)
 - `POST /api/queries/sync`: Crea y procesa una consulta inmediatamente (síncrono)
 - `GET /api/queries/{query_id}`: Obtiene el estado de una consulta
