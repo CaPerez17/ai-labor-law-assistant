@@ -3,23 +3,68 @@ Endpoint de Consultas Legales Directas
 ----------------------------------
 Este módulo implementa un endpoint directo para consultas al asistente legal,
 que combina la búsqueda BM25 con la generación de respuestas con GPT.
+Incluye optimizaciones para reducir consumo de tokens y controles de uso.
 """
 
+import os
+import json
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Dict, Any
+import hashlib
 
 from ...db.database import get_db
 from ...schemas.legal_document import SearchQuery
 from ...schemas.query import LegalResponse
 from ...services.search_service import SearchService
 from ...services.ai_service import AIService
+import sys
+from pathlib import Path
+
+# Asegurar que backend/ esté en sys.path para poder importar el módulo config
+backend_dir = Path(__file__).resolve().parent.parent.parent.parent
+if str(backend_dir) not in sys.path:
+    sys.path.append(str(backend_dir))
+
+from config import DAILY_QUERY_LIMIT, ECONOMY_MODE
 
 router = APIRouter()
 search_service = SearchService()
 ai_service = AIService()
+
+# Control de uso diario
+usage_file = os.path.join(backend_dir, "usage_stats.json")
+
+def get_daily_usage() -> int:
+    """Obtiene el uso diario actual"""
+    today = date.today().isoformat()
+    try:
+        if os.path.exists(usage_file):
+            with open(usage_file, 'r', encoding='utf-8') as f:
+                usage_data = json.load(f)
+                return usage_data.get(today, 0)
+        return 0
+    except Exception as e:
+        print(f"Error al leer estadísticas de uso: {str(e)}")
+        return 0
+
+def increment_daily_usage() -> None:
+    """Incrementa el contador de uso diario"""
+    today = date.today().isoformat()
+    try:
+        usage_data = {}
+        if os.path.exists(usage_file):
+            with open(usage_file, 'r', encoding='utf-8') as f:
+                usage_data = json.load(f)
+        
+        usage_data[today] = usage_data.get(today, 0) + 1
+        
+        with open(usage_file, 'w', encoding='utf-8') as f:
+            json.dump(usage_data, f, indent=2)
+    except Exception as e:
+        print(f"Error al actualizar estadísticas de uso: {str(e)}")
 
 class LegalQuery(BaseModel):
     """Esquema para consultas legales directas"""
@@ -44,8 +89,25 @@ async def ask_legal_question(
         Respuesta legal con referencias a documentos utilizados
     """
     try:
-        # 1. Buscar documentos relevantes con BM25
-        search_query = SearchQuery(query=query.query, limit=5)
+        # Verificar límite diario
+        daily_usage = get_daily_usage()
+        if daily_usage >= DAILY_QUERY_LIMIT:
+            return LegalResponse(
+                query=query.query,
+                response="Has alcanzado el límite diario de consultas. Por favor, intenta de nuevo mañana.",
+                references=[],
+                confidence_score=0.0,
+                needs_human_review=True,
+                review_reason="Límite diario excedido",
+                processing_time_ms=0,
+                timestamp=datetime.now().isoformat()
+            )
+        
+        # Incrementar contador de uso
+        increment_daily_usage()
+        
+        # 1. Buscar documentos relevantes con BM25 (limitados según configuración)
+        search_query = SearchQuery(query=query.query, limit=5)  # Primero buscamos 5 y luego filtramos
         search_results = search_service.search_documents(db, search_query)
         
         if not search_results:

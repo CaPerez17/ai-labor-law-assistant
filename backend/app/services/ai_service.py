@@ -10,6 +10,7 @@ Mejoras implementadas en optimización de prompt:
 3. Mejor formato para las referencias legales y citaciones
 4. Manejo optimizado de casos con información insuficiente
 5. Evaluación de confianza más precisa
+6. Optimización radical de consumo de tokens y manejo de caché
 """
 
 import os
@@ -17,6 +18,8 @@ import json
 import re
 import time
 import logging
+import hashlib
+from functools import lru_cache
 from typing import List, Dict, Any, Optional, Tuple, Union
 from openai import OpenAI
 from datetime import datetime
@@ -28,12 +31,87 @@ backend_dir = Path(__file__).resolve().parent.parent.parent
 if str(backend_dir) not in sys.path:
     sys.path.append(str(backend_dir))
 
-from config import OPENAI_API_KEY, GPT_MODEL, validate_config
+from config import (
+    OPENAI_API_KEY, GPT_MODEL, validate_config, 
+    ECONOMY_MODE, MAX_TOKENS_OUTPUT, MAX_DOCUMENTS, 
+    MAX_CHARS_PER_DOC, ENABLE_CACHE, CACHE_DIR
+)
 from ..schemas.legal_document import LegalDocumentResponse
 from ..schemas.query import QueryResponse, QueryStatus
 
 # Configurar logging
 logger = logging.getLogger("ai_service")
+
+# Cache en memoria para respuestas
+@lru_cache(maxsize=50)
+def get_cached_response(query_hash: str) -> Optional[Dict[str, Any]]:
+    """
+    Recupera una respuesta desde la caché basada en el hash de la consulta
+    
+    Args:
+        query_hash: Hash MD5 de la consulta
+        
+    Returns:
+        Datos de respuesta cacheados o None si no existe
+    """
+    try:
+        cache_file = os.path.join(CACHE_DIR, f"{query_hash}.json")
+        if os.path.exists(cache_file):
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                logger.info(f"✅ Respuesta recuperada de caché: {cache_file}")
+                return data
+    except Exception as e:
+        logger.error(f"❌ Error al leer caché: {str(e)}")
+    
+    return None
+
+def save_to_cache(query_hash: str, response_data: Dict[str, Any]) -> bool:
+    """
+    Guarda una respuesta en la caché
+    
+    Args:
+        query_hash: Hash MD5 de la consulta
+        response_data: Datos a guardar
+        
+    Returns:
+        True si se guardó correctamente, False en caso contrario
+    """
+    try:
+        cache_file = os.path.join(CACHE_DIR, f"{query_hash}.json")
+        with open(cache_file, 'w', encoding='utf-8') as f:
+            json.dump(response_data, f, ensure_ascii=False, indent=2)
+            logger.info(f"✅ Respuesta guardada en caché: {cache_file}")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Error al guardar en caché: {str(e)}")
+        return False
+
+def create_query_hash(query_text: str, search_results: List[Dict[str, Any]]) -> str:
+    """
+    Crea un hash único para una consulta y sus resultados de búsqueda
+    
+    Args:
+        query_text: Texto de la consulta
+        search_results: Resultados de búsqueda (se usa solo IDs y relevancia)
+        
+    Returns:
+        Hash MD5 como string
+    """
+    # Crear una representación simplificada de los resultados que capture
+    # lo esencial pero ignore detalles que no afectan la respuesta
+    simplified_results = []
+    for doc in search_results[:MAX_DOCUMENTS]:
+        simplified_results.append({
+            "id": doc.get("id", ""),
+            "relevance": doc.get("relevance_score", 0)
+        })
+    
+    # Crear string para hash
+    hash_input = f"{query_text}|{json.dumps(simplified_results)}"
+    
+    # Generar hash
+    return hashlib.md5(hash_input.encode('utf-8')).hexdigest()
 
 class AIService:
     """Servicio para generación de respuestas basadas en IA"""
@@ -79,28 +157,29 @@ class AIService:
             
         try:
             # Hacer una petición mínima para verificar la API key
-            response = self.client.models.list(limit=1)
+            response = self.client.models.list()
             return True
         except Exception as e:
             logger.error(f"❌ Error al verificar la API key: {str(e)}")
             return False
         
-    def format_bm25_context(self, query_text: str, search_results: List[Dict[str, Any]], 
-                           max_documents: int = 5, max_chars_per_doc: int = 2000) -> Dict[str, Any]:
+    def format_bm25_context(self, query_text: str, search_results: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
-        Formatea los resultados de BM25 en un contexto estructurado para GPT.
+        Formatea los resultados de BM25 en un contexto estructurado y optimizado para GPT.
         
         Args:
             query_text: Texto de la consulta del usuario
             search_results: Lista de documentos relevantes recuperados con BM25
-            max_documents: Número máximo de documentos a incluir
-            max_chars_per_doc: Longitud máxima de contenido por documento
             
         Returns:
             Contexto estructurado como diccionario para enviar a GPT
         """
+        # Usar configuración optimizada para ahorrar tokens
+        max_docs = MAX_DOCUMENTS
+        max_chars = MAX_CHARS_PER_DOC
+        
         # Limitar a los más relevantes
-        top_results = search_results[:max_documents]
+        top_results = search_results[:max_docs]
         
         # Crear contexto estructurado
         formatted_documents = []
@@ -122,26 +201,22 @@ class AIService:
             else:
                 legal_reference = doc.get('reference_number', 'N/A')
             
-            # Crear documento estructurado con snippet y contenido completo
+            # Crear documento estructurado con snippet y contenido reducido
+            content = doc.get("snippet", "")[:max_chars]
+            
             formatted_doc = {
                 "id": doc_id,
                 "titulo": doc.get("title", "Documento sin título"),
                 "referencia": legal_reference,
-                "tipo": doc.get("document_type", "No especificado"),
-                "relevancia": round(float(doc.get("relevance_score", 0)), 3),
-                "contenido": doc.get("snippet", "")[:max_chars_per_doc],
-                "texto_completo_disponible": len(doc.get("content", "")) > len(doc.get("snippet", ""))
+                "contenido": content
             }
             
             formatted_documents.append(formatted_doc)
         
-        # Crear contexto completo
+        # Crear contexto optimizado
         context = {
-            "consulta_usuario": query_text,
-            "documentos_relevantes": formatted_documents,
-            "timestamp": datetime.now().isoformat(),
-            "total_documentos_encontrados": len(search_results),
-            "documentos_incluidos": len(formatted_documents)
+            "consulta": query_text,
+            "documentos": formatted_documents
         }
         
         return context
@@ -150,13 +225,14 @@ class AIService:
         self, 
         prompt: str, 
         system_message: str, 
-        max_tokens: int = 1200,
-        temperature: float = 0.2,
+        max_tokens: int = MAX_TOKENS_OUTPUT,
+        temperature: float = 0.1,  # Reducido para respuestas más concisas
         model: str = None,
-        timeout: int = 60
+        timeout: int = 30  # Reducido a 30 segundos
     ) -> Tuple[Optional[str], Optional[str]]:
         """
         Genera una respuesta utilizando la API de OpenAI con manejo de errores y reintentos.
+        Optimizado para reducir consumo de tokens.
         
         Args:
             prompt: Prompt para enviar a GPT
@@ -179,10 +255,9 @@ class AIService:
         model_to_use = model or self.model
         
         # Limpiar y truncar prompts si son muy largos
-        # GPT-4 tiene un límite aproximado de 8K tokens para prompt + respuesta
-        if len(prompt) > 32000:  # aproximadamente 8K tokens
+        if len(prompt) > 4000:  # Reducción drástica de contexto
             logger.warning(f"⚠️ Prompt demasiado largo ({len(prompt)} caracteres). Truncando...")
-            prompt = prompt[:32000]
+            prompt = prompt[:4000]
         
         attempts = 0
         while attempts < self.max_retries:
@@ -201,52 +276,28 @@ class AIService:
                     timeout=timeout
                 )
                 
-                elapsed_time = time.time() - start_time
-                logger.info(f"✅ Respuesta generada en {elapsed_time:.2f} segundos")
+                execution_time = time.time() - start_time
+                logger.info(f"✅ Respuesta generada en {execution_time:.2f} segundos")
                 
-                # Verificar que la respuesta no esté vacía
-                content = response.choices[0].message.content
-                if not content or content.strip() == "":
-                    logger.warning("⚠️ OpenAI devolvió una respuesta vacía")
-                    return None, "La API de OpenAI devolvió una respuesta vacía"
-                    
-                return content, None
+                return response.choices[0].message.content.strip(), None
                 
             except Exception as e:
                 error_str = str(e)
                 logger.error(f"❌ Error al generar respuesta: {error_str}")
                 
-                # Analizar el tipo de error basándonos en el string
-                if "401" in error_str:
-                    logger.error("❌ Error 401: Problema de autenticación. Verifica tu API key.")
-                    return None, f"Error de autenticación con OpenAI: {error_str}"
-                
-                elif "429" in error_str:
-                    logger.warning(f"⚠️ Error 429: Límite de tasa excedido")
-                    wait_time = (2 ** attempts) * self.retry_delay  # Backoff exponencial
-                    logger.info(f"Reintentando en {wait_time} segundos...")
-                    time.sleep(wait_time)
-                
-                elif any(code in error_str for code in ["500", "502", "503", "504"]):
-                    logger.error(f"❌ Error del servidor de OpenAI: {error_str}")
+                # Analizar tipo de error
+                if "maximum context length" in error_str.lower():
+                    # Reducir longitud del prompt aún más
+                    prompt = prompt[:len(prompt)//2]
+                    logger.warning("⚠️ Reduciendo longitud del prompt para evitar exceder máximo de tokens")
+                elif "rate limit" in error_str.lower():
+                    # Esperar más tiempo en caso de límite de tasa
                     wait_time = (2 ** attempts) * self.retry_delay
-                    logger.info(f"Reintentando en {wait_time} segundos...")
+                    logger.warning(f"⚠️ Límite de tasa excedido. Esperando {wait_time} segundos...")
                     time.sleep(wait_time)
-                
-                elif "context_length_exceeded" in error_str.lower():
-                    logger.error("❌ Error: Longitud de contexto excedida")
-                    # Intentar reducir el tamaño del prompt
-                    prompt_length = len(prompt)
-                    new_length = int(prompt_length * 0.8)  # Reducir al 80%
-                    logger.info(f"Reduciendo longitud del prompt de {prompt_length} a {new_length} caracteres")
-                    prompt = prompt[:new_length]
-                    # No incrementar contador de intentos para este caso
-                    continue
-                
-                elif "content_filter" in error_str.lower():
-                    logger.error("❌ Error: Filtro de contenido activado")
-                    return None, "El contenido fue bloqueado por los filtros de seguridad de OpenAI"
-                
+                elif "billing hard limit" in error_str.lower() or "quota" in error_str.lower():
+                    logger.error("❌ Has excedido tu cuota de API. Verifica tu saldo y límites.")
+                    return None, "Cuota de API excedida. Verifica tu saldo y límites en OpenAI."
                 else:
                     logger.error(f"❌ Error desconocido: {error_str}")
                     return None, f"Error inesperado: {error_str}"
@@ -263,6 +314,7 @@ class AIService:
     ) -> Tuple[str, float, bool, Optional[str]]:
         """
         Genera una respuesta a la consulta del usuario utilizando GPT.
+        Versión optimizada para reducir consumo de tokens.
         
         Args:
             query_text: Texto de la consulta del usuario
@@ -284,65 +336,82 @@ class AIService:
                 True,
                 "Error de configuración de OpenAI API"
             )
+        
+        # Verificar caché si está habilitado
+        if ENABLE_CACHE:
+            query_hash = create_query_hash(query_text, search_results)
+            cached_data = get_cached_response(query_hash)
             
-        # Formatear el contexto de BM25 para GPT
+            if cached_data:
+                return (
+                    cached_data["response"],
+                    cached_data["confidence"],
+                    cached_data["needs_review"],
+                    cached_data["review_reason"]
+                )
+        
+        # Si no hay suficientes resultados relevantes, devolver respuesta estándar
+        if not search_results or len(search_results) == 0:
+            default_response = (
+                "No tengo suficiente información en los documentos proporcionados para responder esta consulta de forma completa.\n\n"
+                "**REFERENCIAS LEGALES:**\n"
+                "- No se encontraron documentos relevantes a tu consulta.\n\n"
+                "**CONFIANZA: 0.0**"
+            )
+            
+            if ENABLE_CACHE:
+                save_to_cache(query_hash, {
+                    "response": default_response,
+                    "confidence": 0.0,
+                    "needs_review": True,
+                    "review_reason": "Sin documentos relevantes"
+                })
+                
+            return default_response, 0.0, True, "Sin documentos relevantes"
+            
+        # Formatear el contexto de BM25 para GPT (versión optimizada)
         context = self.format_bm25_context(query_text, search_results)
         
-        # Optimizar el prompt para GPT
+        # Optimizar el prompt para GPT (versión ultra concisa)
         system_prompt = """
-        Eres un asistente legal especializado en derecho laboral colombiano. Tu tarea es proporcionar
-        información precisa y fundamentada basada ÚNICAMENTE en los documentos legales proporcionados.
-        
-        REGLAS ESTRICTAS:
-        1. NUNCA inventes información o cites leyes que no estén en los documentos proporcionados.
-        2. SIEMPRE incluye citas específicas a los documentos usando el formato [DocX], donde X es el número del documento.
-        3. SIEMPRE incluye las referencias legales exactas (números de ley, artículos, etc.) tal como aparecen en los documentos.
-        4. Si no puedes responder con la información disponible, indica claramente: "No tengo suficiente información en los documentos proporcionados para responder esta consulta de forma completa."
-        5. Usa lenguaje claro, directo y comprensible para personas sin formación jurídica.
-        6. SIEMPRE incluye un apartado "Referencias Legales" al final con la lista de documentos citados.
-        
-        ESTRUCTURA DE RESPUESTA:
-        1. RESPUESTA DIRECTA: Comienza con una respuesta directa y concisa a la pregunta.
-        2. EXPLICACIÓN DETALLADA: Desarrolla la respuesta citando documentos específicos.
-        3. DETALLES ADICIONALES: Incluye condiciones, excepciones o aclaraciones si existen.
-        4. REFERENCIAS LEGALES: Lista de documentos citados con sus referencias.
-        5. CONFIANZA: Evalúa tu confianza en la respuesta en una escala de 0 a 1.
-        
-        Evalúa tu confianza en la respuesta en una escala de 0 a 1:
-        - 0.0-0.3: Información insuficiente o documentos poco relevantes
-        - 0.4-0.6: Información parcial con algunas lagunas
-        - 0.7-0.9: Información suficiente con documentos relevantes
-        - 1.0: Información completa y precisa con documentos altamente relevantes
-        
-        Al final, incluye tu evaluación de confianza en el siguiente formato exacto:
-        "CONFIANZA: [puntuación]"
+        Asistente legal colombiano. Responde basándote SOLO en los documentos proporcionados.
+        REGLAS: No inventes información. Sé breve y directo. Cita fuentes como [DocX].
+        Si no tienes suficiente información, indica: "No tengo suficiente información en los documentos proporcionados".
+        ESTRUCTURA: 1) Respuesta directa, 2) Referencias legales.
+        Al final evalúa tu confianza (0-1): "CONFIANZA: [puntuación]"
         """
         
-        # Convertir contexto a formato JSON
-        context_json = json.dumps(context, ensure_ascii=False, indent=2)
+        # Convertir contexto a formato JSON simplificado
+        context_json = json.dumps(context, ensure_ascii=False)
         
         user_prompt = f"""
-        CONSULTA DEL USUARIO: {query_text}
+        CONSULTA: {query_text}
         
-        DOCUMENTOS LEGALES RELEVANTES:
+        DOCUMENTOS:
         {context_json}
         
-        Responde basándote EXCLUSIVAMENTE en los documentos proporcionados. Incluye citas específicas a los documentos [DocX] y referencia los artículos o leyes exactas mencionadas en ellos.
+        Responde usando solo estos documentos. Incluye citas [DocX].
         """
         
         # Generar respuesta usando el método con manejo de errores
         response_text, error = self.generate_gpt_response(
             prompt=user_prompt,
             system_message=system_prompt,
-            max_tokens=1200,
-            temperature=0.2
+            max_tokens=MAX_TOKENS_OUTPUT,
+            temperature=0.1
         )
         
         # Si hubo un error, devolver mensaje de error
         if error:
             logger.error(f"❌ Error al generar respuesta: {error}")
+            
+            error_response = (
+                "Lo siento, no pude procesar tu consulta en este momento debido a limitaciones técnicas.\n\n"
+                "**CONFIANZA: 0.0**"
+            )
+            
             return (
-                "Lo siento, no pude procesar tu consulta en este momento. Un especialista revisará tu caso.",
+                error_response,
                 0.0,
                 True,
                 f"Error en la generación de respuesta: {error}"
@@ -367,6 +436,15 @@ class AIService:
         # Formatear las referencias para que sean más legibles
         clean_response = self._format_legal_references(clean_response)
         
+        # Guardar en caché si está habilitado
+        if ENABLE_CACHE:
+            save_to_cache(query_hash, {
+                "response": clean_response,
+                "confidence": confidence_score,
+                "needs_review": needs_human_review,
+                "review_reason": review_reason
+            })
+        
         return clean_response, confidence_score, needs_human_review, review_reason
     
     def _extract_confidence_score(self, response_text: str) -> float:
@@ -387,7 +465,7 @@ class AIService:
     def _format_legal_references(self, response_text: str) -> str:
         """Mejora el formato de las referencias legales"""
         # Destacar referencias a documentos
-        formatted_text = re.sub(r'\[Doc(\d+)\]', r'[**Doc\1**]', response_text)
+        formatted_text = re.sub(r'\[Doc(\d+)\]', r'[📄 Doc\1]', response_text)
         
         # Destacar referencias a artículos
         formatted_text = re.sub(r'(artículo|art\.|art)\s+(\d+)', r'Artículo \2', formatted_text, flags=re.IGNORECASE)
