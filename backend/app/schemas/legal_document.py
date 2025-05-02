@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
-from ..models.legal_document import DocumentType
+from app.models.legal_document import DocumentType
 
 
 class LegalDocumentBase(BaseModel):

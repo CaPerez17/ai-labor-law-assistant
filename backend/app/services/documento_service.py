@@ -13,7 +13,7 @@ import PyPDF2
 import docx
 import re
 from datetime import datetime
-from ..schemas.documento import (
+from app.schemas.documento import (
     DocumentoResponse,
     Clausula,
     Riesgo,

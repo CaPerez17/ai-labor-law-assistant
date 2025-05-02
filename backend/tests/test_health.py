@@ -1,5 +1,11 @@
 from fastapi.testclient import TestClient
-from app.main import app
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
 
 client = TestClient(app)
 

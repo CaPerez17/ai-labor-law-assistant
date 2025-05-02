@@ -7,7 +7,7 @@ Define los modelos Pydantic para la facturación.
 from pydantic import BaseModel, Field, validator
 from typing import Optional
 from datetime import datetime
-from ..models.factura import EstadoFactura
+from app.models.factura import EstadoFactura
 
 class FacturaBase(BaseModel):
     """Modelo base para facturas"""

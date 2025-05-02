@@ -8,15 +8,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional
 from sqlalchemy.orm import Session
 
-from schemas.abogado import (
+from app.schemas.abogado import (
     CasoAbogado,
     UpdateCasoInput,
     CasoResponse,
     EstadoCaso,
     NivelRiesgo
 )
-from services.abogado_service import AbogadoService
-from db.session import get_db
+from app.services.abogado_service import AbogadoService
+from app.db.session import get_db
 
 router = APIRouter()
 abogado_service = AbogadoService()

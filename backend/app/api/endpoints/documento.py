@@ -9,9 +9,9 @@ from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 
-from db.database import get_db
-from schemas.documento import DocumentoResponse
-from services.documento_service import DocumentoService
+from app.db.database import get_db
+from app.schemas.documento import DocumentoResponse
+from app.services.documento_service import DocumentoService
 
 router = APIRouter()
 documento_service = DocumentoService()

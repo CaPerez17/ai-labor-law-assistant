@@ -11,9 +11,9 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from ..db.session import get_db
-from ..models.usuario import Usuario
-from ..schemas.auth import TokenData
+from app.db.session import get_db
+from app.models.usuario import Usuario
+from app.schemas.auth import TokenData
 from .config import settings
 
 # Configuración de seguridad

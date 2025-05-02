@@ -4,14 +4,14 @@ from sqlalchemy import func
 from typing import List, Dict, Any
 from datetime import datetime, timedelta
 
-from db.session import get_db
-from services.auth_service import AuthService
-from services.metricas_service import MetricasService
-from services.facturacion_service import FacturacionService
-from models.usuario import Usuario
-from models.caso import Caso
-from models.factura import Factura
-from models.calificacion import Calificacion
+from app.db.session import get_db
+from app.services.auth_service import AuthService
+from app.services.metricas_service import MetricasService
+from app.services.facturacion_service import FacturacionService
+from app.models.usuario import Usuario
+from app.models.caso import Caso
+from app.models.factura import Factura
+from app.models.calificacion import Calificacion
 
 router = APIRouter()
 auth_service = AuthService()

@@ -9,9 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 
-from db.database import get_db
-from schemas.indemnizacion import DespidoInput, IndemnizacionResponse
-from services.indemnizacion_service import IndemnizacionService
+from app.db.database import get_db
+from app.schemas.indemnizacion import DespidoInput, IndemnizacionResponse
+from app.services.indemnizacion_service import IndemnizacionService
 
 router = APIRouter()
 indemnizacion_service = IndemnizacionService()

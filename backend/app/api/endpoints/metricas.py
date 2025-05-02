@@ -10,9 +10,9 @@ from sqlalchemy.orm import Session
 from typing import Any, Dict
 from pathlib import Path
 
-from schemas.metricas import MetricaUso, FeedbackUsuario, FeedbackResponse
-from services.metricas_service import MetricasService
-from db.session import get_db
+from app.schemas.metricas import MetricaUso, FeedbackUsuario, FeedbackResponse
+from app.services.metricas_service import MetricasService
+from app.db.session import get_db
 
 router = APIRouter()
 metricas_service = MetricasService()

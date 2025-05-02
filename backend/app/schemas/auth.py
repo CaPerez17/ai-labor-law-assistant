@@ -7,7 +7,7 @@ Define los modelos Pydantic para la autenticación y manejo de usuarios.
 from pydantic import BaseModel, EmailStr, Field, validator, field_validator, ConfigDict
 from typing import Optional
 from datetime import datetime
-from ..models.usuario import RolUsuario
+from app.models.usuario import RolUsuario
 
 class UsuarioBase(BaseModel):
     """Modelo base para usuarios"""

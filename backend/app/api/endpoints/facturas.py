@@ -8,15 +8,15 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from schemas.factura import (
+from app.schemas.factura import (
     FacturaCreate,
     FacturaResponse,
     PagoInput
 )
-from services.factura_service import FacturaService
-from services.auth_service import AuthService
-from models.factura import EstadoFactura
-from db.session import get_db
+from app.services.factura_service import FacturaService
+from app.services.auth_service import AuthService
+from app.models.factura import EstadoFactura
+from app.db.session import get_db
 
 router = APIRouter()
 

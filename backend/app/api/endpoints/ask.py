@@ -15,11 +15,11 @@ from datetime import datetime, date
 from typing import List, Dict, Any
 import hashlib
 
-from db.database import get_db
-from schemas.legal_document import SearchQuery
-from schemas.query import LegalResponse
-from services.search_service import SearchService
-from services.ai_service import AIService
+from app.db.database import get_db
+from app.schemas.legal_document import SearchQuery
+from app.schemas.query import LegalResponse
+from app.services.search_service import SearchService
+from app.services.ai_service import AIService
 import sys
 from pathlib import Path
 

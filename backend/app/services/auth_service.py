@@ -12,9 +12,9 @@ from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
-from ..models.usuario import Usuario, RolUsuario
-from ..schemas.auth import UsuarioCreate, TokenData
-from ..db.session import get_db
+from app.models.usuario import Usuario, RolUsuario
+from app.schemas.auth import UsuarioCreate, TokenData
+from app.db.session import get_db
 
 # Configuración de seguridad
 SECRET_KEY = "tu_clave_secreta_muy_segura"  # En producción, usar variable de entorno

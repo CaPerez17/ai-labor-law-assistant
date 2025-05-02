@@ -11,7 +11,7 @@ from typing import List, Optional
 from datetime import datetime
 from pathlib import Path
 
-from ..schemas.abogado import CasoAbogado, UpdateCasoInput, CasoResponse, EstadoCaso
+from app.schemas.abogado import CasoAbogado, UpdateCasoInput, CasoResponse, EstadoCaso
 
 # Configurar logging
 logger = logging.getLogger(__name__)

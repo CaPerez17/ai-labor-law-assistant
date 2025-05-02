@@ -10,7 +10,7 @@ import httpx
 from typing import Optional
 from datetime import datetime
 
-from ..schemas.whatsapp import WhatsappInput, WhatsappResponse
+from app.schemas.whatsapp import WhatsappInput, WhatsappResponse
 
 # Configurar logging
 logger = logging.getLogger(__name__)

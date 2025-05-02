@@ -9,7 +9,7 @@ basado en los elementos esenciales del contrato de trabajo según el CST:
 """
 
 from typing import Dict, List, Tuple
-from ..schemas.contrato_realidad import (
+from app.schemas.contrato_realidad import (
     ContratoRealidadInput,
     ContratoRealidadResponse,
     RiesgoNivel,

@@ -8,9 +8,9 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from ..models.factura import Factura
-from ..models.usuario import Usuario
-from ..schemas.factura import FacturaCreate, FacturaUpdate
+from app.models.factura import Factura
+from app.models.usuario import Usuario
+from app.schemas.factura import FacturaCreate, FacturaUpdate
 
 class FacturacionService:
     async def crear_factura(

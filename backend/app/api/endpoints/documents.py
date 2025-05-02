@@ -8,16 +8,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from db.database import get_db
-from models.legal_document import LegalDocument, DocumentType
-from schemas.legal_document import (
+from app.db.database import get_db
+from app.models.legal_document import LegalDocument, DocumentType
+from app.schemas.legal_document import (
     LegalDocumentCreate, 
     LegalDocumentUpdate, 
     LegalDocumentResponse,
     LegalDocumentSearchResult,
     SearchQuery
 )
-from services.search_service import SearchService
+from app.services.search_service import SearchService
 
 router = APIRouter()
 search_service = SearchService()

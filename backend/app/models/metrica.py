@@ -8,7 +8,7 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-from ..db.base_class import Base
+from app.db.base_class import Base
 
 class MetricaUso(Base):
     __tablename__ = "metricas_uso"

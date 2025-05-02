@@ -9,9 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 
-from db.database import get_db
-from schemas.contrato_realidad import ContratoRealidadInput, ContratoRealidadResponse
-from services.contrato_realidad_service import ContratoRealidadService
+from app.db.database import get_db
+from app.schemas.contrato_realidad import ContratoRealidadInput, ContratoRealidadResponse
+from app.services.contrato_realidad_service import ContratoRealidadService
 
 router = APIRouter()
 contrato_service = ContratoRealidadService()

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, Dict, Any
 from pydantic import BaseModel, ConfigDict
-from ..models.notificacion import TipoNotificacion
+from app.models.notificacion import TipoNotificacion
 
 class NotificacionBase(BaseModel):
     tipo: TipoNotificacion

@@ -6,7 +6,7 @@ y recomendar el flujo más apropiado.
 """
 
 from typing import List, Dict, Any
-from ..schemas.onboarding import OnboardingResponse, TipoFlujo
+from app.schemas.onboarding import OnboardingResponse, TipoFlujo
 
 class OnboardingService:
     """Servicio para el proceso de onboarding"""

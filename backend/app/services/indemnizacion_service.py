@@ -6,7 +6,7 @@ según la legislación laboral colombiana.
 """
 
 from typing import List, Tuple
-from ..schemas.indemnizacion import (
+from app.schemas.indemnizacion import (
     DespidoInput,
     IndemnizacionResponse,
     DetalleCalculo,

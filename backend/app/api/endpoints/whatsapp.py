@@ -7,9 +7,9 @@ Implementa los endpoints para el envío de mensajes por WhatsApp.
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from schemas.whatsapp import WhatsappInput, WhatsappResponse
-from services.whatsapp_service import WhatsappService
-from db.session import get_db
+from app.schemas.whatsapp import WhatsappInput, WhatsappResponse
+from app.services.whatsapp_service import WhatsappService
+from app.db.session import get_db
 
 router = APIRouter()
 whatsapp_service = WhatsappService()

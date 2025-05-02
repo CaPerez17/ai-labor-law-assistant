@@ -9,9 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Any
 
-from schemas.escalamiento import EscalamientoInput, EscalamientoResponse
-from services.escalamiento_service import EscalamientoService
-from db.session import get_db
+from app.schemas.escalamiento import EscalamientoInput, EscalamientoResponse
+from app.services.escalamiento_service import EscalamientoService
+from app.db.session import get_db
 
 router = APIRouter()
 escalamiento_service = EscalamientoService()

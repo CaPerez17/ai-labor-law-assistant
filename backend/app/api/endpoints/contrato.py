@@ -9,9 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 
-from db.database import get_db
-from schemas.contrato import ContratoInput, ContratoResponse
-from services.contrato_service import ContratoService
+from app.db.database import get_db
+from app.schemas.contrato import ContratoInput, ContratoResponse
+from app.services.contrato_service import ContratoService
 
 router = APIRouter()
 contrato_service = ContratoService()

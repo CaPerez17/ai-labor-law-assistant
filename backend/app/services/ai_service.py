@@ -36,8 +36,8 @@ from config import (
     ECONOMY_MODE, MAX_TOKENS_OUTPUT, MAX_DOCUMENTS, 
     MAX_CHARS_PER_DOC, ENABLE_CACHE, CACHE_DIR
 )
-from ..schemas.legal_document import LegalDocumentResponse
-from ..schemas.query import QueryResponse, QueryStatus
+from app.schemas.legal_document import LegalDocumentResponse
+from app.schemas.query import QueryResponse, QueryStatus
 
 # Configurar logging
 logger = logging.getLogger("ai_service")

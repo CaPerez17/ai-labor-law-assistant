@@ -11,7 +11,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
 from dotenv import load_dotenv
-from ..core.config import settings
+from app.core.config import settings
 import jinja2
 
 load_dotenv()

@@ -6,7 +6,7 @@ Define el modelo de Factura y sus estados para el sistema de facturación.
 
 from sqlalchemy import Column, Integer, String, Float, Enum, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
-from ..db.base_class import Base
+from app.db.base_class import Base
 import enum
 
 class EstadoFactura(str, enum.Enum):

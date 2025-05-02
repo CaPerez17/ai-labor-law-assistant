@@ -10,19 +10,19 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Optional
 
-from core.config import settings
-from core.security import create_access_token, verify_token
-from db.session import get_db
-from models.usuario import Usuario
-from schemas.auth import (
+from app.core.config import settings
+from app.core.security import create_access_token, verify_token
+from app.db.session import get_db
+from app.models.usuario import Usuario
+from app.schemas.auth import (
     UsuarioCreate,
     UsuarioResponse,
     Token,
     TokenData,
     RecuperacionPassword
 )
-from services.auth_service import AuthService
-from services.email_service import EmailService
+from app.services.auth_service import AuthService
+from app.services.email_service import EmailService
 
 router = APIRouter()
 auth_service = AuthService()

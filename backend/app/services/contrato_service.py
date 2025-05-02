@@ -8,7 +8,7 @@ a partir de plantillas predefinidas.
 import os
 from datetime import datetime
 from typing import Dict, Optional
-from ..schemas.contrato import ContratoInput, ContratoResponse, TipoContrato
+from app.schemas.contrato import ContratoInput, ContratoResponse, TipoContrato
 
 class ContratoService:
     """Servicio para generación de contratos laborales"""

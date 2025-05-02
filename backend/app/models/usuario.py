@@ -6,7 +6,7 @@ Define la estructura de datos para los usuarios en la base de datos.
 
 from sqlalchemy import Column, Integer, String, Enum, DateTime, func, Boolean
 from sqlalchemy.orm import relationship
-from ..db.base_class import Base
+from app.db.base_class import Base
 import enum
 
 class RolUsuario(str, enum.Enum):

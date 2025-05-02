@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
-from ..schemas.metricas import MetricaUso, FeedbackUsuario, FeedbackResponse
+from app.schemas.metricas import MetricaUso, FeedbackUsuario, FeedbackResponse
 
 class MetricasService:
     """Servicio para el manejo de métricas y feedback"""

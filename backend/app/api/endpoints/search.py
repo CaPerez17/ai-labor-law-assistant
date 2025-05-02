@@ -9,10 +9,10 @@ from sqlalchemy.orm import Session
 from typing import Dict, List, Any, Optional
 from pydantic import BaseModel, Field
 
-from db.database import get_db
-from models.legal_document import DocumentType
-from schemas.legal_document import SearchQuery
-from services.search_service import SearchService
+from app.db.database import get_db
+from app.models.legal_document import DocumentType
+from app.schemas.legal_document import SearchQuery
+from app.services.search_service import SearchService
 
 
 # Esquemas de respuesta específicos para el endpoint de búsqueda

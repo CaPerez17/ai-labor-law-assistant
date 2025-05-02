@@ -5,7 +5,7 @@ import asyncio
 import logging
 import redis.asyncio as redis
 import os
-from ..core.config import settings
+from app.core.config import settings
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)

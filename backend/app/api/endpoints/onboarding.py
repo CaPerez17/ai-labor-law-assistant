@@ -9,9 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Any
 
-from schemas.onboarding import OnboardingInput, OnboardingResponse
-from services.onboarding_service import OnboardingService
-from db.session import get_db
+from app.schemas.onboarding import OnboardingInput, OnboardingResponse
+from app.services.onboarding_service import OnboardingService
+from app.db.session import get_db
 
 router = APIRouter()
 onboarding_service = OnboardingService()

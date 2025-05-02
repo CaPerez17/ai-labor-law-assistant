@@ -9,9 +9,9 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
-from ..models.factura import Factura, EstadoFactura
-from ..schemas.factura import FacturaCreate, FacturaUpdate, PagoInput
-from ..models.usuario import Usuario
+from app.models.factura import Factura, EstadoFactura
+from app.schemas.factura import FacturaCreate, FacturaUpdate, PagoInput
+from app.models.usuario import Usuario
 
 class FacturaService:
     """Servicio para manejar facturas y pagos"""

@@ -6,7 +6,7 @@ Define los esquemas de Pydantic para la validación y serialización de casos.
 
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict
-from ..models.caso import EstadoCaso
+from app.models.caso import EstadoCaso
 
 class CasoBase(BaseModel):
     titulo: str

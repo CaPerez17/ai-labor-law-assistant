@@ -24,8 +24,8 @@ from typing import List, Dict, Any, Tuple, Optional, Union
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
 
-from ..models.legal_document import LegalDocument, DocumentType
-from ..schemas.legal_document import SearchQuery, LegalDocumentSearchResult
+from app.models.legal_document import LegalDocument, DocumentType
+from app.schemas.legal_document import SearchQuery, LegalDocumentSearchResult
 
 # Configurar logging
 logging.basicConfig(
