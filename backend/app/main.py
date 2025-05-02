@@ -28,5 +28,10 @@ def read_root():
 def health():
     return {"status": "ok"}
 
+# Endpoint healthz para Kubernetes
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
+
 # Incluir el router de la API
 app.include_router(api_router, prefix=settings.API_V1_STR) 
