@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificación - LegalAssista</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #4F46E5;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .content {
+            background-color: #ffffff;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #6B7280;
+            font-size: 12px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #4F46E5;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .notification {
+            background-color: #F3F4F6;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>LegalAssista</h1>
+        </div>
+        
+        <div class="content">
+            <h2>Hola {{ nombre }},</h2>
+            
+            <div class="notification">
+                <h3>{{ titulo }}</h3>
+                <p>{{ mensaje }}</p>
+            </div>
+            
+            <p>Puedes ver más detalles iniciando sesión en tu cuenta.</p>
+            
+            <a href="{{ frontend_url }}/login" class="button">Ir a LegalAssista</a>
+        </div>
+        
+        <div class="footer">
+            <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
+            <p>Fecha: {{ fecha }}</p>
+        </div>
+    </div>
+</body>
+</html> 

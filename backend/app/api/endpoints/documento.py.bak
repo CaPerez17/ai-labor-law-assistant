@@ -1,0 +1,49 @@
+"""
+API de Análisis de Documentos
+--------------------------
+Este módulo implementa los endpoints para analizar documentos legales
+y extraer información relevante.
+"""
+
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import Dict, Any
+
+from ...db.database import get_db
+from ...schemas.documento import DocumentoResponse
+from ...services.documento_service import DocumentoService
+
+router = APIRouter()
+documento_service = DocumentoService()
+
+@router.post("/analizar", response_model=DocumentoResponse)
+async def analizar_documento(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+) -> DocumentoResponse:
+    """
+    Analiza un documento legal y extrae información relevante.
+    
+    Args:
+        file: Archivo a analizar
+        db: Sesión de base de datos
+        
+    Returns:
+        Resultado del análisis
+        
+    Raises:
+        HTTPException: Si hay un error en el análisis
+    """
+    try:
+        resultado = await documento_service.analizar_documento(file)
+        return resultado
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al analizar el documento: {str(e)}"
+        ) 

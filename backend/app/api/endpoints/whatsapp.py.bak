@@ -1,0 +1,41 @@
+"""
+Endpoints de WhatsApp
+------------------
+Implementa los endpoints para el envío de mensajes por WhatsApp.
+"""
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from ...schemas.whatsapp import WhatsappInput, WhatsappResponse
+from ...services.whatsapp_service import WhatsappService
+from ...db.session import get_db
+
+router = APIRouter()
+whatsapp_service = WhatsappService()
+
+@router.post("/enviar", response_model=WhatsappResponse)
+async def enviar_whatsapp(
+    data: WhatsappInput,
+    db: Session = Depends(get_db)
+) -> WhatsappResponse:
+    """
+    Envía un mensaje por WhatsApp.
+    
+    Args:
+        data: Datos del mensaje a enviar
+        db: Sesión de base de datos
+        
+    Returns:
+        Respuesta con el resultado del envío
+        
+    Raises:
+        HTTPException: Si hay un error al procesar la solicitud
+    """
+    try:
+        return await whatsapp_service.enviar_mensaje(data)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al enviar mensaje por WhatsApp: {str(e)}"
+        ) 

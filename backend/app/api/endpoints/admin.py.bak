@@ -1,0 +1,119 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from typing import List, Dict, Any
+from datetime import datetime, timedelta
+
+from ...db.session import get_db
+from ...services.auth_service import AuthService
+from ...services.metricas_service import MetricasService
+from ...services.facturacion_service import FacturacionService
+from ...models.usuario import Usuario
+from ...models.caso import Caso
+from ...models.factura import Factura
+from ...models.calificacion import Calificacion
+
+router = APIRouter()
+auth_service = AuthService()
+metricas_service = MetricasService()
+facturacion_service = FacturacionService()
+
+@router.get("/analytics")
+async def get_analytics(
+    start_date: str,
+    end_date: str,
+    current_user: Usuario = Depends(auth_service.get_current_admin_user),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Obtiene métricas y estadísticas del sistema.
+    
+    Args:
+        start_date: Fecha de inicio en formato YYYY-MM-DD
+        end_date: Fecha de fin en formato YYYY-MM-DD
+        current_user: Usuario actual (debe ser admin)
+        db: Sesión de base de datos
+        
+    Returns:
+        Dict con las métricas y estadísticas
+    """
+    try:
+        # Convertir fechas
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d")
+        
+        # Total de usuarios por rol
+        total_usuarios = {
+            "admin": db.query(func.count(Usuario.id)).filter(Usuario.rol == "admin").scalar(),
+            "abogado": db.query(func.count(Usuario.id)).filter(Usuario.rol == "abogado").scalar(),
+            "cliente": db.query(func.count(Usuario.id)).filter(Usuario.rol == "cliente").scalar()
+        }
+        
+        # Total de casos y casos resueltos
+        total_casos = db.query(func.count(Caso.id)).filter(
+            Caso.fecha_creacion.between(start, end)
+        ).scalar()
+        
+        casos_resueltos = db.query(func.count(Caso.id)).filter(
+            Caso.fecha_creacion.between(start, end),
+            Caso.estado == "resuelto"
+        ).scalar()
+        
+        # Ingresos totales
+        ingresos_totales = db.query(func.sum(Factura.monto_total)).filter(
+            Factura.fecha_creacion.between(start, end),
+            Factura.estado == "pagada"
+        ).scalar() or 0
+        
+        # Promedio de calificaciones
+        promedio_calificaciones = db.query(func.avg(Calificacion.puntuacion)).scalar() or 0
+        
+        # Evolución de casos por día
+        evolucion_casos = []
+        current = start
+        while current <= end:
+            total = db.query(func.count(Caso.id)).filter(
+                func.date(Caso.fecha_creacion) == current.date()
+            ).scalar()
+            
+            evolucion_casos.append({
+                "fecha": current.date().isoformat(),
+                "total": total
+            })
+            current += timedelta(days=1)
+        
+        # Evolución de ingresos por día
+        evolucion_ingresos = []
+        current = start
+        while current <= end:
+            total = db.query(func.sum(Factura.monto_total)).filter(
+                func.date(Factura.fecha_creacion) == current.date(),
+                Factura.estado == "pagada"
+            ).scalar() or 0
+            
+            evolucion_ingresos.append({
+                "fecha": current.date().isoformat(),
+                "total": total
+            })
+            current += timedelta(days=1)
+        
+        return {
+            "total_usuarios": total_usuarios,
+            "total_casos": total_casos,
+            "casos_resueltos": casos_resueltos,
+            "ingresos_totales": ingresos_totales,
+            "promedio_calificaciones": promedio_calificaciones,
+            "evolucion_casos": evolucion_casos,
+            "evolucion_ingresos": evolucion_ingresos
+        }
+        
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Formato de fecha inválido. Use YYYY-MM-DD"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        ) 

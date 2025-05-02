@@ -1,0 +1,59 @@
+services:
+  # Backend - API REST FastAPI
+  - type: web
+    name: legalassista-api
+    env: docker
+    plan: free
+    region: oregon
+    rootDir: ./backend
+    buildCommand: echo "Build completado mediante Dockerfile"
+    startCommand: ./start.sh
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: legalassista-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: legalassista-redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://legalassista.onrender.com
+      - key: OPENAI_API_KEY
+        sync: false # Debe ser configurado manualmente
+      - key: MERCADOPAGO_PUBLIC_KEY
+        sync: false # Debe ser configurado manualmente
+      - key: MERCADOPAGO_ACCESS_TOKEN
+        sync: false # Debe ser configurado manualmente
+
+  # Frontend - React/Vite
+  - type: web
+    name: legalassista
+    env: static
+    plan: free
+    region: oregon
+    rootDir: ./frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_BACKEND_URL
+        value: https://legalassista-api.onrender.com
+      - key: VITE_WEBSOCKET_URL
+        value: wss://legalassista-api.onrender.com/ws
+
+# Base de datos PostgreSQL
+databases:
+  - name: legalassista-db
+    plan: free
+    region: oregon
+
+# Redis para WebSockets y cache
+services:
+  - type: redis
+    name: legalassista-redis
+    plan: free
+    region: oregon
+    ipAllowList: [] 

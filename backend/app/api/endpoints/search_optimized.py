@@ -12,10 +12,10 @@ from pydantic import BaseModel, Field
 import time
 from datetime import datetime
 
-from ...db.database import get_db
-from ...models.legal_document import DocumentType
-from ...schemas.legal_document import SearchQuery
-from ...services.optimized_bm25_service import OptimizedBM25Service
+from db.database import get_db
+from models.legal_document import DocumentType
+from schemas.legal_document import SearchQuery
+from services.optimized_bm25_service import OptimizedBM25Service
 
 
 # Esquemas de respuesta específicos para el endpoint de búsqueda

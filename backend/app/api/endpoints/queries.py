@@ -10,11 +10,11 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List, Dict, Any
 
-from ...db.database import get_db
-from ...schemas.query import UserQuery, QueryResponse, QueryCreate, QueryStatus
-from ...schemas.legal_document import SearchQuery
-from ...services.search_service import SearchService
-from ...services.ai_service import AIService
+from db.database import get_db
+from schemas.query import UserQuery, QueryResponse, QueryCreate, QueryStatus
+from schemas.legal_document import SearchQuery
+from services.search_service import SearchService
+from services.ai_service import AIService
 
 router = APIRouter()
 search_service = SearchService()
