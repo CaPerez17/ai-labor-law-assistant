@@ -1,7 +1,6 @@
 # Dependencias principales
 fastapi==0.110.0
 uvicorn==0.27.1
-pydantic==2.4.2
 sqlalchemy==2.0.27
 alembic==1.13.1
 python-dotenv==1.0.0
@@ -19,7 +18,7 @@ python-docx==1.1.0
 openpyxl==3.1.2
 
 # IA y LLMs
-openai==1.2.0
+openai>=1.2.0
 
 # Autenticación y seguridad
 python-jose==3.3.0
