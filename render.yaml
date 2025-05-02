@@ -2,11 +2,11 @@ services:
   # Backend - API REST FastAPI
   - type: web
     name: legalassista-api
-    env: docker
+    env: python
     plan: free
     region: oregon
     rootDir: ./backend
-    buildCommand: echo "Build completado mediante Dockerfile"
+    buildCommand: pip install -r requirements.txt
     startCommand: ./start.sh
     envVars:
       - key: DATABASE_URL

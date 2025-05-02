@@ -23,5 +23,10 @@ app.add_middleware(
 def read_root():
     return {"status": "online", "message": "LegalAssista API funcionando correctamente"}
 
+# Endpoint health-check
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
 # Incluir el router de la API
 app.include_router(api_router, prefix=settings.API_V1_STR) 
