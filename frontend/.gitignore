@@ -8,7 +8,7 @@
 
 # Producción
 /build
-/dist
+# /dist - No ignorar para Render
 
 # Diversos
 .DS_Store

@@ -36,8 +36,8 @@ services:
     plan: free
     region: oregon
     rootDir: ./frontend
-    buildCommand: npm ci && npm run build
-    staticPublishPath: ./dist
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
     envVars:
       - key: VITE_BACKEND_URL
         value: https://legalassista-api.onrender.com
