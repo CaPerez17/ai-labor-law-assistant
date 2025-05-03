@@ -369,4 +369,19 @@ Si encuentras errores relacionados con la API de OpenAI:
 ```bash
 cd backend
 pytest
-``` 
+```
+
+## Inicialización de Usuarios
+
+Para crear usuarios iniciales en la base de datos, se puede ejecutar el script `seed.py`:
+
+```bash
+cd backend
+python scripts/seed.py
+```
+
+Este script creará los siguientes usuarios si no existen:
+- **admin@legalassista.com** (password: admin123) - Rol: Administrador
+- **abogado@legalassista.com** (password: abogado123) - Rol: Abogado
+
+El script verifica primero si los usuarios ya existen para evitar duplicados. 
