@@ -26,6 +26,7 @@ def create_initial_users():
     Crea usuarios iniciales si no existen:
     - admin@legalassista.com (administrador)
     - abogado@legalassista.com (abogado)
+    - cliente@legalassista.com (cliente)
     """
     # Crear una sesión
     db = SessionLocal()
@@ -44,6 +45,12 @@ def create_initial_users():
                 "password": "abogado123",
                 "nombre": "Abogado Principal",
                 "rol": RolUsuario.ABOGADO
+            },
+            {
+                "email": "cliente@legalassista.com",
+                "password": "cliente123",
+                "nombre": "Cliente Test",
+                "rol": RolUsuario.CLIENTE
             }
         ]
         

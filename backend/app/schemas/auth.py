@@ -4,7 +4,7 @@ Schemas de Autenticación
 Define los modelos Pydantic para la autenticación y manejo de usuarios.
 """
 
-from pydantic import BaseModel, EmailStr, Field, validator, field_validator, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, validator, ConfigDict
 from typing import Optional
 from datetime import datetime
 from app.models.usuario import RolUsuario
@@ -19,7 +19,7 @@ class UsuarioCreate(UsuarioBase):
     """Modelo para crear un usuario"""
     password: str = Field(..., min_length=8)
 
-    @field_validator('password')
+    @validator('password')
     def password_min_length(cls, v):
         """Valida la fortaleza de la contraseña"""
         if len(v) < 8:
@@ -37,7 +37,8 @@ class UsuarioResponse(UsuarioBase):
     activo: bool
     fecha_registro: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
 
 class Token(BaseModel):
     """Modelo para token JWT"""
@@ -54,7 +55,7 @@ class RecuperacionPassword(BaseModel):
     token: Optional[str] = None
     nueva_password: Optional[str] = None
 
-    @field_validator('nueva_password')
+    @validator('nueva_password')
     def password_min_length(cls, v):
         if v is not None and len(v) < 8:
             raise ValueError('La contraseña debe tener al menos 8 caracteres')

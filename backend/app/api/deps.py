@@ -28,12 +28,28 @@ def get_current_user(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         token_data = TokenData(**payload)
+        
+        # Intentar obtener "sub" como ID primero
+        user_id = token_data.sub
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Token inválido o expirado",
+            )
+            
+        # Si el sub parece ser un email (contiene @), buscar por email
+        if isinstance(user_id, str) and '@' in user_id:
+            user = db.query(Usuario).filter(Usuario.email == user_id).first()
+        else:
+            # De lo contrario, buscar por ID
+            user = db.query(Usuario).filter(Usuario.id == user_id).first()
+            
     except (jwt.JWTError, ValidationError):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No se pudo validar las credenciales",
         )
-    user = db.query(Usuario).filter(Usuario.id == token_data.sub).first()
+        
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return user

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.core.config import settings
-from app.core.security import create_access_token, verify_token
+from app.core.security import create_access_token, verify_token, verify_password
 from app.db.session import get_db
 from app.models.usuario import Usuario
 from app.schemas.auth import (
@@ -69,11 +69,20 @@ async def login(
     Autentica un usuario y retorna un token JWT.
     """
     try:
-        usuario = await auth_service.autenticar_usuario(
-            db,
-            form_data.username,
-            form_data.password
-        )
+        # Buscar usuario por email
+        usuario = db.query(Usuario).filter(Usuario.email == form_data.username).first()
+        if not usuario:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciales inválidas"
+            )
+        
+        # Verificar contraseña
+        if not verify_password(form_data.password, usuario.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciales inválidas"
+            )
         
         # Verificar si la cuenta está activa
         if not usuario.activo:
@@ -82,11 +91,14 @@ async def login(
                 detail="Cuenta no activada. Por favor, revisa tu correo electrónico."
             )
         
+        # Crear token con el ID del usuario en el campo 'sub'
         access_token = create_access_token(
-            data={"sub": usuario.email, "rol": usuario.rol}
+            data={"sub": usuario.id, "email": usuario.email, "rol": usuario.rol.value}
         )
         
         return {"access_token": access_token, "token_type": "bearer"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
