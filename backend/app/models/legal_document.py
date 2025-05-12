@@ -7,9 +7,8 @@ almacenados en la base de datos.
 
 import sys
 from pathlib import Path
-from sqlalchemy import Column, Integer, String, Text, DateTime, Index, ForeignKey, func
-from sqlalchemy.sql import func as sqlfunc
-from sqlalchemy.dialects.postgresql import TSVECTOR, GIN
+from sqlalchemy import Column, Integer, String, Text, DateTime, Index, ForeignKey
+from sqlalchemy import func as sqlfunc
 import enum
 
 # Asegurar que backend/ esté en sys.path
@@ -63,7 +62,9 @@ class LegalDocument(Base):
     # Índices específicos según el tipo de base de datos
     if not DATABASE_URL.startswith("sqlite"):
         __table_args__ = (
-            Index('idx_content_fulltext', func.to_tsvector('spanish', content), postgresql_using='gin'),
+            # Este índice habilita búsqueda de texto completo en español sobre el campo `content`, 
+            # usando PostgreSQL GIN con `to_tsvector`.
+            Index("idx_content_fulltext", sqlfunc.to_tsvector("spanish", content), postgresql_using="gin"),
         )
     
     def __repr__(self):
