@@ -18,7 +18,7 @@ if str(backend_dir) not in sys.path:
 
 # Importar configuración
 from config import DATABASE_URL
-from app.db.database import Base
+from app.db.base_class import Base
 
 
 class DocumentType(str, enum.Enum):
