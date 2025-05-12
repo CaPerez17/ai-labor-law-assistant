@@ -14,6 +14,8 @@ class Calificacion(Base):
     """
     Modelo para representar una calificación.
     """
+    __tablename__ = "calificaciones"
+    
     id = Column(Integer, primary_key=True, index=True)
     puntuacion = Column(Float, nullable=False)
     comentario = Column(Text, nullable=True)
