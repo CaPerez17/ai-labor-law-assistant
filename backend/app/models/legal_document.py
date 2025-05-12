@@ -7,7 +7,7 @@ almacenados en la base de datos.
 
 import sys
 from pathlib import Path
-from sqlalchemy import Column, Integer, String, Text, DateTime, Index, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, Index, ForeignKey, text
 from sqlalchemy import func as sqlfunc
 import enum
 
@@ -64,7 +64,7 @@ class LegalDocument(Base):
         __table_args__ = (
             # Este índice habilita búsqueda de texto completo en español sobre el campo `content`, 
             # usando PostgreSQL GIN con `to_tsvector`.
-            Index("idx_content_fulltext", sqlfunc.to_tsvector("spanish", content), postgresql_using="gin"),
+            Index("idx_content_fulltext", sqlfunc.to_tsvector(text("'spanish'"), content), postgresql_using="gin"),
         )
     
     def __repr__(self):
