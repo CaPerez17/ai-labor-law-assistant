@@ -7,8 +7,9 @@ almacenados en la base de datos.
 
 import sys
 from pathlib import Path
-from sqlalchemy import Column, Integer, String, Text, DateTime, Index, ForeignKey
-from sqlalchemy.sql import func
+from sqlalchemy import Column, Integer, String, Text, DateTime, Index, ForeignKey, func
+from sqlalchemy.sql import func as sqlfunc
+from sqlalchemy.dialects.postgresql import TSVECTOR, GIN
 import enum
 
 # Asegurar que backend/ esté en sys.path
@@ -56,14 +57,13 @@ class LegalDocument(Base):
     subcategory = Column(String(100), nullable=True, index=True)
     
     # Metadatos de sistema
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, server_default=sqlfunc.now())
+    updated_at = Column(DateTime, server_default=sqlfunc.now(), onupdate=sqlfunc.now())
     
-    # No incluimos índices PostgreSQL-específicos para SQLite
-    # __table_args__ condicionado a la base de datos
+    # Índices específicos según el tipo de base de datos
     if not DATABASE_URL.startswith("sqlite"):
         __table_args__ = (
-            Index('idx_content_fulltext', content, postgresql_using='gin'),
+            Index('idx_content_fulltext', func.to_tsvector('spanish', content), postgresql_using='gin'),
         )
     
     def __repr__(self):
