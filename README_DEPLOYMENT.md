@@ -4,10 +4,10 @@ Este documento detalla el proceso de despliegue de LegalAssista, una aplicación
 
 ## URLs de la aplicación
 
-- **Frontend**: https://legalassista.onrender.com
-- **Backend API**: https://legalassista-api.onrender.com
-- **API Docs**: https://legalassista-api.onrender.com/docs
-- **WebSocket**: wss://legalassista-api.onrender.com/ws
+- **Frontend**: https://legalassista-frontend.onrender.com
+- **Backend API**: https://legalassista.onrender.com
+- **API Docs**: https://legalassista.onrender.com/docs
+- **WebSocket**: wss://legalassista.onrender.com/ws
 
 ## Usuarios demo
 
@@ -15,15 +15,15 @@ Para probar la aplicación, puedes usar las siguientes credenciales:
 
 - **Administrador**:
   - Email: admin@legalassista.com
-  - Contraseña: Admin123!
+  - Contraseña: admin123
 
 - **Abogado**:
   - Email: abogado@legalassista.com
-  - Contraseña: Abogado123!
+  - Contraseña: abogado123
 
 - **Cliente**:
   - Email: cliente@legalassista.com
-  - Contraseña: Cliente123!
+  - Contraseña: cliente123
 
 ## Configuración del despliegue en Render
 
@@ -31,8 +31,8 @@ El despliegue en Render se realiza automáticamente utilizando el archivo `rende
 
 ### Servicios configurados
 
-- **API Backend** (legalassista-api): Servicio web Docker con FastAPI y WebSockets
-- **Frontend** (legalassista): Servicio web Docker con React/Vite
+- **API Backend** (legalassista): Servicio web Python con FastAPI y WebSockets
+- **Frontend** (legalassista-frontend): Servicio web estático con React/Vite
 - **Base de datos** (legalassista-db): PostgreSQL gestionado
 - **Redis** (legalassista-redis): Redis gestionado para WebSockets y caché
 
@@ -53,7 +53,7 @@ Si necesitas desplegar manualmente (sin usar render.yaml), sigue estos pasos:
 1. Crea un nuevo servicio web en Render
 2. Conecta con tu repositorio de GitHub
 3. Selecciona la carpeta `/backend`
-4. Configura como Docker
+4. Configura como Python
 5. Configura las variables de entorno:
    - `DATABASE_URL`: URL de conexión a PostgreSQL
    - `REDIS_URL`: URL de conexión a Redis
@@ -69,10 +69,10 @@ Si necesitas desplegar manualmente (sin usar render.yaml), sigue estos pasos:
 1. Crea un nuevo servicio web en Render
 2. Conecta con tu repositorio de GitHub
 3. Selecciona la carpeta `/frontend`
-4. Configura como Docker
+4. Configura como Static Site
 5. Configura las variables de entorno:
-   - `VITE_BACKEND_URL`: URL del backend desplegado
-   - `VITE_WEBSOCKET_URL`: URL del WebSocket (ws:// o wss://)
+   - `VITE_BACKEND_URL`: URL del backend desplegado (https://legalassista.onrender.com)
+   - `VITE_WEBSOCKET_URL`: URL del WebSocket (wss://legalassista.onrender.com/ws)
 
 ### 3. Configuración de base de datos PostgreSQL
 
@@ -90,9 +90,9 @@ Si necesitas desplegar manualmente (sin usar render.yaml), sigue estos pasos:
 
 Una vez completado el despliegue, verifica:
 
-1. Accede al frontend en https://legalassista.onrender.com
+1. Accede al frontend en https://legalassista-frontend.onrender.com
 2. Verifica que puedas iniciar sesión con los usuarios demo
-3. Accede a la documentación API en https://legalassista-api.onrender.com/docs
+3. Accede a la documentación API en https://legalassista.onrender.com/docs
 4. Asegúrate de que las notificaciones en tiempo real funcionan (usa el WebSocket)
 5. Prueba un flujo de pago con MercadoPago (en modo sandbox)
 
@@ -142,4 +142,16 @@ Verifica que:
 
 - Confirma que las credenciales de MercadoPago son correctas
 - Verifica que estás usando las credenciales de sandbox para pruebas
-- Asegúrate de que la URL del webhook está correctamente configurada en MercadoPago 
+- Asegúrate de que la URL del webhook está correctamente configurada en MercadoPago
+
+### Problemas de login
+
+Si experimentas problemas al iniciar sesión:
+
+1. Asegúrate de que la URL del backend está correctamente configurada en el frontend:
+   - Debe ser `https://legalassista.onrender.com` (¡no `legalassista-api.onrender.com`!)
+   - Verifica la variable de entorno `VITE_BACKEND_URL` en el servicio frontend de Render
+
+2. Revisa los logs del backend para ver si las solicitudes de login están llegando correctamente
+
+3. Utiliza la herramienta de depuración en el formulario de login (haz clic en "Mostrar información técnica") 

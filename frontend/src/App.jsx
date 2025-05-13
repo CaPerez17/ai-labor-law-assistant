@@ -12,6 +12,11 @@ import RecuperacionPassword from './components/RecuperacionPassword';
 import AdminAnalyticsDashboard from './components/AdminAnalyticsDashboard';
 import PrivateRoute from './components/PrivateRoute';
 
+// Importar archivo de configuración de emergencia
+import './config_override';
+// Importar desde config después de la sobrescritura de emergencia
+import { BACKEND_URL } from './config';
+
 function App() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -25,6 +30,19 @@ function App() {
         setLoading(false);
     }, []);
 
+    useEffect(() => {
+        // Verificar que la URL del backend sea correcta
+        console.log('[App] URL del backend configurada:', BACKEND_URL);
+        
+        // Intentar forzar la URL correcta desde window
+        if (window.forceCorrectBackendURL) {
+            const changed = window.forceCorrectBackendURL();
+            if (changed) {
+                console.warn('[App] La URL del backend ha sido corregida');
+            }
+        }
+    }, []);
+
     const handleLogin = (userData) => {
         setUser(userData);
     };
@@ -33,6 +51,24 @@ function App() {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
+    };
+
+    const isAuthenticated = () => {
+        return localStorage.getItem('token') !== null;
+    };
+
+    const getUserRole = () => {
+        const user = localStorage.getItem('user');
+        if (user) {
+            try {
+                const userData = JSON.parse(user);
+                return userData.role;
+            } catch (error) {
+                console.error('Error parsing user data:', error);
+                return null;
+            }
+        }
+        return null;
     };
 
     if (loading) {
