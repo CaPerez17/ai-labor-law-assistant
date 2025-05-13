@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { BACKEND_URL } from '../config';
-import '../debug_login'; // Importar el script de depuración (solo para desarrollo)
+import { BACKEND_URL } from '../config_override';
 
 const LoginForm = () => {
     const [email, setEmail] = useState('');
@@ -39,17 +38,31 @@ const LoginForm = () => {
                 
                 console.log("Login exitoso con formato JSON");
                 
-                localStorage.setItem('token', response.data.access_token);
-                localStorage.setItem('user', JSON.stringify(response.data.user));
-
-                // Redirigir según el rol del usuario
-                const userRole = response.data.user.role;
-                if (userRole === 'admin') {
-                    navigate('/admin');
-                } else if (userRole === 'lawyer') {
-                    navigate('/abogado');
+                // Verificar si tenemos un token de acceso
+                if (response.data && response.data.access_token) {
+                    // Almacenar el token
+                    localStorage.setItem('token', response.data.access_token);
+                    
+                    // Verificar que user existe antes de almacenarlo
+                    if (response.data.user) {
+                        localStorage.setItem('user', JSON.stringify(response.data.user));
+                        
+                        // Redirigir según el rol del usuario
+                        const userRole = response.data.user.role;
+                        if (userRole === 'admin') {
+                            navigate('/admin');
+                        } else if (userRole === 'lawyer') {
+                            navigate('/abogado');
+                        } else {
+                            navigate('/cliente');
+                        }
+                    } else {
+                        console.error("La respuesta no contiene datos de usuario");
+                        setError("Error: La respuesta del servidor no incluye datos de usuario");
+                    }
                 } else {
-                    navigate('/cliente');
+                    console.error("La respuesta no contiene token de acceso");
+                    setError("Error: La respuesta del servidor no incluye token de acceso");
                 }
                 return;
             } catch (jsonError) {
@@ -70,17 +83,31 @@ const LoginForm = () => {
             
             console.log("Login exitoso con FormData");
             
-            localStorage.setItem('token', response.data.access_token);
-            localStorage.setItem('user', JSON.stringify(response.data.user));
-
-            // Redirigir según el rol del usuario
-            const userRole = response.data.user.role;
-            if (userRole === 'admin') {
-                navigate('/admin');
-            } else if (userRole === 'lawyer') {
-                navigate('/abogado');
+            // Verificar si tenemos un token de acceso
+            if (response.data && response.data.access_token) {
+                // Almacenar el token
+                localStorage.setItem('token', response.data.access_token);
+                
+                // Verificar que user existe antes de almacenarlo
+                if (response.data.user) {
+                    localStorage.setItem('user', JSON.stringify(response.data.user));
+                    
+                    // Redirigir según el rol del usuario
+                    const userRole = response.data.user.role;
+                    if (userRole === 'admin') {
+                        navigate('/admin');
+                    } else if (userRole === 'lawyer') {
+                        navigate('/abogado');
+                    } else {
+                        navigate('/cliente');
+                    }
+                } else {
+                    console.error("La respuesta no contiene datos de usuario");
+                    setError("Error: La respuesta del servidor no incluye datos de usuario");
+                }
             } else {
-                navigate('/cliente');
+                console.error("La respuesta no contiene token de acceso");
+                setError("Error: La respuesta del servidor no incluye token de acceso");
             }
         } catch (err) {
             console.error('Error de login:', err);
