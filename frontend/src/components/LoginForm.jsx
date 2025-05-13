@@ -1,14 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { BACKEND_URL } from '../config';
+import '../debug_login'; // Importar el script de depuración (solo para desarrollo)
 
 const LoginForm = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [backendUrl, setBackendUrl] = useState(BACKEND_URL);
+    const [showDebug, setShowDebug] = useState(false);
     const navigate = useNavigate();
+
+    // Mostrar la URL del backend al cargar el componente
+    useEffect(() => {
+        console.log(`[LoginForm] URL de backend configurada: ${BACKEND_URL}`);
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -82,16 +90,16 @@ const LoginForm = () => {
                 if (err.response.status === 401) {
                     setError(err.response.data.detail || 'Credenciales incorrectas');
                 } else if (err.response.status === 404) {
-                    setError('Servicio de autenticación no disponible');
+                    setError(`Servicio de autenticación no disponible en ${BACKEND_URL}/api/auth/login`);
                 } else {
-                    setError(`Error: ${err.response.data.detail || 'Hubo un problema al iniciar sesión'}`);
+                    setError(`Error HTTP ${err.response.status}: ${err.response.data.detail || 'Hubo un problema al iniciar sesión'}`);
                 }
             } else if (err.request) {
                 // La solicitud fue hecha pero no se recibió respuesta
-                setError('No se pudo contactar al servidor. Verifica tu conexión');
+                setError(`No se pudo contactar al servidor en ${BACKEND_URL}. Verifica tu conexión y la URL del backend.`);
             } else {
                 // Algo ocurrió al configurar la solicitud
-                setError('Error al procesar la solicitud de inicio de sesión');
+                setError('Error al procesar la solicitud de inicio de sesión: ' + err.message);
             }
         } finally {
             setLoading(false);
@@ -181,6 +189,36 @@ const LoginForm = () => {
                         </button>
                     </div>
                 </form>
+
+                {/* Panel de depuración condicional */}
+                <div className="mt-6 text-center">
+                    <button 
+                        onClick={() => setShowDebug(!showDebug)} 
+                        className="text-sm text-gray-500 hover:text-gray-700"
+                    >
+                        {showDebug ? 'Ocultar información técnica' : 'Mostrar información técnica'}
+                    </button>
+                </div>
+
+                {showDebug && (
+                    <div className="mt-4 p-4 border rounded-md bg-gray-50">
+                        <h3 className="text-sm font-medium text-gray-800">Información de depuración:</h3>
+                        <p className="text-xs mt-1">Backend URL: {BACKEND_URL}</p>
+                        <p className="text-xs mt-1">Endpoint: {`${BACKEND_URL}/api/auth/login`}</p>
+                        <div className="mt-2">
+                            <button 
+                                onClick={() => window.testLogin && window.testLogin(email, password)}
+                                className="text-xs px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                                disabled={!email || !password || !window.testLogin}
+                            >
+                                Ejecutar prueba de login
+                            </button>
+                        </div>
+                        <p className="text-xs mt-2 text-gray-500">
+                            Revisa la consola del navegador para ver los resultados de la prueba.
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );

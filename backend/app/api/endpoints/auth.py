@@ -5,12 +5,13 @@ Implementa los endpoints para la autenticación y manejo de usuarios.
 """
 
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, Form, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Form, Request, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, Dict, Any
 import os
 import logging
+import json
 
 from app.core.config import settings
 from app.core.security import create_access_token, verify_token, verify_password, get_password_hash
@@ -66,6 +67,25 @@ async def registro(
             detail=str(e)
         )
 
+@router.get("/status")
+async def auth_status():
+    """
+    Endpoint simple para verificar que la ruta de autenticación está disponible.
+    Útil para depuración y monitoreo.
+    """
+    logger.info("Endpoint de estado de autenticación accedido")
+    return {
+        "status": "online",
+        "message": "El servicio de autenticación está funcionando correctamente",
+        "endpoints": {
+            "login": "/api/auth/login",
+            "registro": "/api/auth/registro",
+            "activar": "/api/auth/activar/{token}",
+            "recuperar-password": "/api/auth/recuperar-password",
+            "perfil": "/api/auth/perfil"
+        }
+    }
+
 @router.post("/login", response_model=Token)
 async def login(
     request: Request,
@@ -81,21 +101,43 @@ async def login(
     """
     try:
         # Log de la solicitud entrante
-        body = await request.json()
         logger.info(f"Intento de login: endpoint=/api/auth/login, método={request.method}")
         logger.info(f"Headers: {dict(request.headers)}")
-        logger.info(f"Body recibido: {body}")
+        
+        # Intentar leer el cuerpo de la solicitud como JSON
+        body = {}
+        try:
+            body_bytes = await request.body()
+            if body_bytes:
+                content_type = request.headers.get("content-type", "").lower()
+                if "application/json" in content_type:
+                    body = json.loads(body_bytes)
+                    logger.info(f"Body recibido (JSON): {body}")
+                elif "form" in content_type or "multipart" in content_type:
+                    # Para formularios, ya tenemos form_data
+                    logger.info("Body recibido en formato form-data")
+                else:
+                    logger.warning(f"Tipo de contenido no esperado: {content_type}")
+        except Exception as e:
+            logger.warning(f"Error al leer o parsear el cuerpo de la solicitud: {str(e)}")
+            # No es crítico, continuamos con form_data
         
         # Obtener email y password (permitir tanto username como email)
         email = form_data.username  # OAuth2PasswordRequestForm usa username
-        if 'email' in body:
-            email = body['email']  # Si hay un campo 'email' en el body, úsalo
-            logger.info(f"Usando email del body JSON: {email}")
-        
         password = form_data.password
-        if 'password' in body:
-            password = body['password']
-            logger.info(f"Usando password del body JSON (no logueado por seguridad)")
+        
+        # Si tenemos body JSON, intentar obtener email y password de ahí
+        if body:
+            if 'email' in body:
+                email = body['email']
+                logger.info(f"Usando email del body JSON: {email}")
+            elif 'username' in body:
+                email = body['username']
+                logger.info(f"Usando username del body JSON: {email}")
+                
+            if 'password' in body:
+                password = body['password']
+                logger.info("Usando password del body JSON (no logueado por seguridad)")
         
         logger.info(f"Autenticando usuario con email: {email}")
         
