@@ -17,7 +17,8 @@ app.add_middleware(
         "http://localhost:5173", 
         "http://localhost:5174",
         "https://legalassista-frontend.onrender.com",
-        "https://legalassista.onrender.com"
+        "https://legalassista.onrender.com",
+        "*"  # Temporalmente para pruebas - quitar en producción final
     ],
     allow_credentials=True,
     allow_methods=["*"],

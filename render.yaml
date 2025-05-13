@@ -1,7 +1,7 @@
 services:
   # Backend - API REST FastAPI
   - type: web
-    name: legalassista-api
+    name: legalassista
     env: python
     plan: free
     region: oregon
@@ -21,7 +21,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: FRONTEND_URL
-        value: https://legalassista.onrender.com
+        value: https://legalassista-frontend.onrender.com
       - key: OPENAI_API_KEY
         sync: false # Debe ser configurado manualmente
       - key: MERCADOPAGO_PUBLIC_KEY
@@ -31,7 +31,7 @@ services:
 
   # Frontend - React/Vite
   - type: web
-    name: legalassista
+    name: legalassista-frontend
     env: static
     plan: free
     region: oregon
@@ -40,9 +40,9 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_BACKEND_URL
-        value: https://legalassista-api.onrender.com
+        value: https://legalassista.onrender.com
       - key: VITE_WEBSOCKET_URL
-        value: wss://legalassista-api.onrender.com/ws
+        value: wss://legalassista.onrender.com/ws
 
 # Base de datos PostgreSQL
 databases:

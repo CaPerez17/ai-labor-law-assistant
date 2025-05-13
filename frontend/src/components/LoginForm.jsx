@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+// Usar la variable de entorno o un valor predeterminado con la URL correcta
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://legalassista.onrender.com';
 
 const LoginForm = ({ onLoginSuccess }) => {
     const [email, setEmail] = useState('');
@@ -17,6 +18,8 @@ const LoginForm = ({ onLoginSuccess }) => {
         setLoading(true);
 
         try {
+            console.log(`Intentando login en: ${BACKEND_URL}/api/auth/login`);
+            
             const formData = new FormData();
             formData.append('username', email);
             formData.append('password', password);
@@ -55,6 +58,7 @@ const LoginForm = ({ onLoginSuccess }) => {
                     navigate('/');
             }
         } catch (err) {
+            console.error('Error de login:', err);
             setError(err.response?.data?.detail || 'Error al iniciar sesión');
         } finally {
             setLoading(false);
