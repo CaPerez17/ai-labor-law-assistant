@@ -18,11 +18,50 @@ const LoginForm = () => {
         try {
             console.log(`Intentando login en: ${BACKEND_URL}/api/auth/login`);
             
-            const response = await axios.post(`${BACKEND_URL}/api/auth/login`, {
-                email: email,
-                password: password
-            });
+            // Intentar primero con formato JSON
+            try {
+                const response = await axios.post(`${BACKEND_URL}/api/auth/login`, {
+                    email: email,
+                    password: password
+                }, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log("Login exitoso con formato JSON");
+                
+                localStorage.setItem('token', response.data.access_token);
+                localStorage.setItem('user', JSON.stringify(response.data.user));
 
+                // Redirigir según el rol del usuario
+                const userRole = response.data.user.role;
+                if (userRole === 'admin') {
+                    navigate('/admin');
+                } else if (userRole === 'lawyer') {
+                    navigate('/abogado');
+                } else {
+                    navigate('/cliente');
+                }
+                return;
+            } catch (jsonError) {
+                console.error("Error con formato JSON, intentando con FormData:", jsonError);
+                // Si falla, intentamos con FormData como respaldo
+            }
+            
+            // Intentar con FormData (formato que espera OAuth2)
+            const formData = new FormData();
+            formData.append('username', email);
+            formData.append('password', password);
+            
+            const response = await axios.post(`${BACKEND_URL}/api/auth/login`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            
+            console.log("Login exitoso con FormData");
+            
             localStorage.setItem('token', response.data.access_token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
 

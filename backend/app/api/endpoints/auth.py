@@ -5,14 +5,15 @@ Implementa los endpoints para la autenticación y manejo de usuarios.
 """
 
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Form, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Optional
 import os
+import logging
 
 from app.core.config import settings
-from app.core.security import create_access_token, verify_token, verify_password
+from app.core.security import create_access_token, verify_token, verify_password, get_password_hash
 from app.db.session import get_db
 from app.models.usuario import Usuario
 from app.schemas.auth import (
@@ -28,6 +29,10 @@ from app.services.email_service import EmailService
 router = APIRouter()
 auth_service = AuthService()
 email_service = EmailService()
+
+# Configurar logger
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 @router.post("/registro", response_model=UsuarioResponse)
 async def registro(
@@ -63,6 +68,7 @@ async def registro(
 
 @router.post("/login", response_model=Token)
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
@@ -74,14 +80,34 @@ async def login(
     - Mensajes de error específicos si falla la autenticación
     """
     try:
+        # Log de la solicitud entrante
+        body = await request.json()
+        logger.info(f"Intento de login: endpoint=/api/auth/login, método={request.method}")
+        logger.info(f"Headers: {dict(request.headers)}")
+        logger.info(f"Body recibido: {body}")
+        
+        # Obtener email y password (permitir tanto username como email)
+        email = form_data.username  # OAuth2PasswordRequestForm usa username
+        if 'email' in body:
+            email = body['email']  # Si hay un campo 'email' en el body, úsalo
+            logger.info(f"Usando email del body JSON: {email}")
+        
+        password = form_data.password
+        if 'password' in body:
+            password = body['password']
+            logger.info(f"Usando password del body JSON (no logueado por seguridad)")
+        
+        logger.info(f"Autenticando usuario con email: {email}")
+        
         # Verificar si estamos en modo demo
         demo_mode = os.environ.get("LEGALASSISTA_DEMO", "").lower() == "true"
+        logger.info(f"Modo demo activado: {demo_mode}")
         
         # En modo demo, intentar modificar el nombre de usuario para usar la versión demo
-        if demo_mode and not form_data.username.endswith("_demo@legalassista.com"):
+        if demo_mode and not email.endswith("_demo@legalassista.com"):
             # Extraer el rol de la dirección de correo si es posible
-            if "@" in form_data.username:
-                username_parts = form_data.username.split("@")[0]
+            if "@" in email:
+                username_parts = email.split("@")[0]
                 # Si el usuario ya tiene un formato como "admin@", "cliente@", etc.
                 if any(role in username_parts.lower() for role in ["admin", "abogado", "cliente"]):
                     for role in ["admin", "abogado", "cliente"]:
@@ -95,20 +121,27 @@ async def login(
                 # Si no tiene formato de correo, usar cliente demo
                 demo_username = "cliente_demo@legalassista.com"
                 
-            print(f"Modo demo activado. Usuario original: {form_data.username}, Usuario demo: {demo_username}")
-            form_data.username = demo_username
-            form_data.password = "demo123"  # Contraseña estándar para usuarios demo
+            logger.info(f"Modo demo activado. Usuario original: {email}, Usuario demo: {demo_username}")
+            email = demo_username
+            password = "demo123"  # Contraseña estándar para usuarios demo
         
         # Buscar usuario por email
-        usuario = db.query(Usuario).filter(Usuario.email == form_data.username).first()
+        usuario = db.query(Usuario).filter(Usuario.email == email).first()
         if not usuario:
+            logger.error(f"Usuario no encontrado: {email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Correo no registrado en LegalAssista"
             )
         
+        logger.info(f"Usuario encontrado: {email}, rol: {usuario.rol.value}")
+        
         # Verificar contraseña
-        if not verify_password(form_data.password, usuario.password_hash):
+        password_valid = verify_password(password, usuario.password_hash)
+        logger.info(f"Contraseña válida: {password_valid}")
+        
+        if not password_valid:
+            logger.error(f"Contraseña incorrecta para usuario: {email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Contraseña incorrecta"
@@ -116,6 +149,7 @@ async def login(
         
         # Verificar si la cuenta está activa
         if not usuario.activo:
+            logger.error(f"Cuenta no activada: {email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Cuenta no activada. Por favor, revisa tu correo electrónico para activarla."
@@ -131,14 +165,28 @@ async def login(
             }
         )
         
-        return {"access_token": access_token, "token_type": "bearer"}
+        logger.info(f"Token generado exitosamente para usuario: {email}")
+        
+        # Construir respuesta con usuario
+        user_data = {
+            "id": usuario.id,
+            "email": usuario.email,
+            "nombre": usuario.nombre,
+            "role": usuario.rol.value
+        }
+        
+        return {
+            "access_token": access_token, 
+            "token_type": "bearer",
+            "user": user_data
+        }
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error de autenticación: {str(e)}")
+        logger.error(f"Error de autenticación: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Error al procesar la solicitud de autenticación"
+            detail=f"Error al procesar la solicitud de autenticación: {str(e)}"
         )
 
 @router.post("/activar/{token}")
