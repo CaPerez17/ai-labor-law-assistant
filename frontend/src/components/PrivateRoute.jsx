@@ -3,8 +3,24 @@ import { Navigate, useLocation } from 'react-router-dom';
 
 const PrivateRoute = ({ children, roles }) => {
     const location = useLocation();
-    const user = JSON.parse(localStorage.getItem('user'));
+    
+    // Recuperar datos de autenticación con manejo seguro
+    const userStr = localStorage.getItem('user');
     const token = localStorage.getItem('token');
+    
+    // Intentar parsear el usuario con verificación
+    let user = null;
+    if (userStr) {
+        try {
+            user = JSON.parse(userStr);
+        } catch (e) {
+            console.error('Error al parsear datos de usuario:', e);
+            // Si hay un error de parseo, limpiar el localStorage y redirigir al login
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            return <Navigate to="/login" state={{ from: location }} replace />;
+        }
+    }
 
     if (!token || !user) {
         // Redirigir al login si no hay token o usuario

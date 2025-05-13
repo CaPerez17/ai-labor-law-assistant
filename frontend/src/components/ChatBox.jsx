@@ -18,32 +18,42 @@ const ChatBox = () => {
 
     useEffect(() => {
         cargarConversaciones();
-        const user = JSON.parse(localStorage.getItem('user'));
-        if (user) {
-            const wsClient = new WebSocket(`${process.env.REACT_APP_WS_URL}/ws/${user.id}`);
-            
-            wsClient.onopen = () => {
-                console.log('Conexión WebSocket establecida');
-            };
-            
-            wsClient.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.type === 'message') {
-                    setMensajes(prev => [...prev, data.data]);
-                    marcarMensajeLeido(data.data.id);
-                }
-            };
-            
-            wsClient.onerror = (error) => {
-                console.error('Error en WebSocket:', error);
-                setError('Error en la conexión del chat');
-            };
-            
-            setWs(wsClient);
-            
-            return () => {
-                wsClient.close();
-            };
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            try {
+                const user = JSON.parse(userStr);
+                const wsClient = new WebSocket(`${process.env.REACT_APP_WS_URL}/ws/${user.id}`);
+                
+                wsClient.onopen = () => {
+                    console.log('Conexión WebSocket establecida');
+                };
+                
+                wsClient.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'message') {
+                            setMensajes(prev => [...prev, data.data]);
+                            marcarMensajeLeido(data.data.id);
+                        }
+                    } catch (error) {
+                        console.error('Error al parsear mensaje WebSocket:', error);
+                    }
+                };
+                
+                wsClient.onerror = (error) => {
+                    console.error('Error en WebSocket:', error);
+                    setError('Error en la conexión del chat');
+                };
+                
+                setWs(wsClient);
+                
+                return () => {
+                    wsClient.close();
+                };
+            } catch (error) {
+                console.error('Error al parsear datos de usuario:', error);
+                setError('Error al iniciar el chat - problemas con los datos de usuario');
+            }
         }
     }, []);
 
@@ -188,7 +198,16 @@ const ChatBox = () => {
                         {/* Mensajes */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
                             {mensajes.map((mensaje) => {
-                                const esPropio = mensaje.remitente_id === JSON.parse(localStorage.getItem('user')).id;
+                                let esPropio = false;
+                                try {
+                                    const userStr = localStorage.getItem('user');
+                                    if (userStr) {
+                                        const user = JSON.parse(userStr);
+                                        esPropio = mensaje.remitente_id === user.id;
+                                    }
+                                } catch (error) {
+                                    console.error('Error al parsear datos de usuario:', error);
+                                }
                                 return (
                                     <div
                                         key={mensaje.id}
