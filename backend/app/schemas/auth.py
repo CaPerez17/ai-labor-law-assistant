@@ -5,7 +5,7 @@ Define los modelos Pydantic para la autenticación y manejo de usuarios.
 """
 
 from pydantic import BaseModel, EmailStr, Field, validator, ConfigDict
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 from app.models.usuario import RolUsuario
 
@@ -40,10 +40,18 @@ class UsuarioResponse(UsuarioBase):
     class Config:
         from_attributes = True
 
+class UserData(BaseModel):
+    """Datos básicos del usuario para el frontend"""
+    id: int
+    email: EmailStr
+    nombre: str
+    role: str  # Usa 'role' en lugar de 'rol' para compatibilidad con el frontend
+
 class Token(BaseModel):
     """Modelo para token JWT"""
     access_token: str
     token_type: str
+    user: Optional[UserData] = None
 
 class TokenData(BaseModel):
     """Modelo para datos del token"""

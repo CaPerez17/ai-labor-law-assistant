@@ -22,7 +22,8 @@ from app.schemas.auth import (
     UsuarioResponse,
     Token,
     TokenData,
-    RecuperacionPassword
+    RecuperacionPassword,
+    UserData
 )
 from app.services.auth_service import AuthService
 from app.services.email_service import EmailService
@@ -98,6 +99,7 @@ async def login(
     Devuelve:
     - Un token de acceso JWT si las credenciales son válidas
     - Mensajes de error específicos si falla la autenticación
+    - Datos del usuario autenticado en formato compatible con el frontend
     """
     try:
         # Log de la solicitud entrante
@@ -209,19 +211,34 @@ async def login(
         
         logger.info(f"Token generado exitosamente para usuario: {email}")
         
-        # Construir respuesta con usuario
-        user_data = {
-            "id": usuario.id,
-            "email": usuario.email,
-            "nombre": usuario.nombre,
-            "role": usuario.rol.value
-        }
+        # Construir objeto UserData para respuesta
+        user_data = UserData(
+            id=usuario.id,
+            email=usuario.email,
+            nombre=usuario.nombre,
+            role=usuario.rol.value  # 'role' en lugar de 'rol' para compatibilidad con frontend
+        )
         
-        return {
-            "access_token": access_token, 
-            "token_type": "bearer",
-            "user": user_data
-        }
+        # Log de la respuesta que se enviará
+        logger.info(f"Respuesta de login para {email}: token generado y datos de usuario incluidos")
+        
+        # Construir respuesta completa
+        response = Token(
+            access_token=access_token, 
+            token_type="bearer",
+            user=user_data
+        )
+        
+        # Log de validación final
+        logger.info(f"Validación de respuesta login:")
+        logger.info(f"- access_token incluido: {bool(response.access_token)}")
+        logger.info(f"- user incluido: {bool(response.user)}")
+        if response.user:
+            logger.info(f"- user.id: {response.user.id}")
+            logger.info(f"- user.email: {response.user.email}")
+            logger.info(f"- user.role: {response.user.role}")
+        
+        return response
     except HTTPException:
         raise
     except Exception as e:
