@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Optional
+import os
 
 from app.core.config import settings
 from app.core.security import create_access_token, verify_token, verify_password
@@ -67,42 +68,77 @@ async def login(
 ):
     """
     Autentica un usuario y retorna un token JWT.
+    
+    Devuelve:
+    - Un token de acceso JWT si las credenciales son válidas
+    - Mensajes de error específicos si falla la autenticación
     """
     try:
+        # Verificar si estamos en modo demo
+        demo_mode = os.environ.get("LEGALASSISTA_DEMO", "").lower() == "true"
+        
+        # En modo demo, intentar modificar el nombre de usuario para usar la versión demo
+        if demo_mode and not form_data.username.endswith("_demo@legalassista.com"):
+            # Extraer el rol de la dirección de correo si es posible
+            if "@" in form_data.username:
+                username_parts = form_data.username.split("@")[0]
+                # Si el usuario ya tiene un formato como "admin@", "cliente@", etc.
+                if any(role in username_parts.lower() for role in ["admin", "abogado", "cliente"]):
+                    for role in ["admin", "abogado", "cliente"]:
+                        if role in username_parts.lower():
+                            demo_username = f"{role}_demo@legalassista.com"
+                            break
+                else:
+                    # Si no se puede determinar el rol, usar cliente por defecto
+                    demo_username = "cliente_demo@legalassista.com"
+            else:
+                # Si no tiene formato de correo, usar cliente demo
+                demo_username = "cliente_demo@legalassista.com"
+                
+            print(f"Modo demo activado. Usuario original: {form_data.username}, Usuario demo: {demo_username}")
+            form_data.username = demo_username
+            form_data.password = "demo123"  # Contraseña estándar para usuarios demo
+        
         # Buscar usuario por email
         usuario = db.query(Usuario).filter(Usuario.email == form_data.username).first()
         if not usuario:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Credenciales inválidas"
+                detail="Correo no registrado en LegalAssista"
             )
         
         # Verificar contraseña
         if not verify_password(form_data.password, usuario.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Credenciales inválidas"
+                detail="Contraseña incorrecta"
             )
         
         # Verificar si la cuenta está activa
         if not usuario.activo:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Cuenta no activada. Por favor, revisa tu correo electrónico."
+                detail="Cuenta no activada. Por favor, revisa tu correo electrónico para activarla."
             )
         
         # Crear token con el ID del usuario en el campo 'sub'
         access_token = create_access_token(
-            data={"sub": usuario.id, "email": usuario.email, "rol": usuario.rol.value}
+            data={
+                "sub": usuario.id, 
+                "email": usuario.email, 
+                "rol": usuario.rol.value,
+                "demo": demo_mode
+            }
         )
         
         return {"access_token": access_token, "token_type": "bearer"}
     except HTTPException:
         raise
     except Exception as e:
+        print(f"Error de autenticación: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales inválidas"
+            detail="Error al procesar la solicitud de autenticación"
         )
 
 @router.post("/activar/{token}")
