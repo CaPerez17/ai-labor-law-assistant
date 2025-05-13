@@ -8,7 +8,6 @@ const LoginForm = () => {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [backendUrl, setBackendUrl] = useState(BACKEND_URL);
     const [showDebug, setShowDebug] = useState(false);
     const navigate = useNavigate();
 
@@ -19,116 +18,150 @@ const LoginForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
+        
+        // Limpiar errores anteriores
         setError('');
+        setLoading(true);
+        
+        console.log(`[LoginForm] Intentando login en: ${BACKEND_URL}/api/auth/login`);
 
         try {
-            console.log(`Intentando login en: ${BACKEND_URL}/api/auth/login`);
+            // Intentar primero con formato JSON (preferido)
+            let response;
+            let loginExitoso = false;
             
-            // Intentar primero con formato JSON
+            // Primer intento: formato JSON
             try {
-                const response = await axios.post(`${BACKEND_URL}/api/auth/login`, {
+                console.log('[LoginForm] Intentando login con formato JSON');
+                response = await axios.post(`${BACKEND_URL}/api/auth/login`, {
                     email: email,
                     password: password
                 }, {
                     headers: {
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    timeout: 10000 // Timeout de 10 segundos
                 });
-                
-                console.log("Login exitoso con formato JSON");
-                
-                // Verificar si tenemos un token de acceso
-                if (response.data && response.data.access_token) {
-                    // Almacenar el token
-                    localStorage.setItem('token', response.data.access_token);
-                    
-                    // Verificar que user existe antes de almacenarlo
-                    if (response.data.user) {
-                        localStorage.setItem('user', JSON.stringify(response.data.user));
-                        
-                        // Redirigir según el rol del usuario
-                        const userRole = response.data.user.role;
-                        if (userRole === 'admin') {
-                            navigate('/admin');
-                        } else if (userRole === 'lawyer') {
-                            navigate('/abogado');
-                        } else {
-                            navigate('/cliente');
-                        }
-                    } else {
-                        console.error("La respuesta no contiene datos de usuario");
-                        setError("Error: La respuesta del servidor no incluye datos de usuario");
-                    }
-                } else {
-                    console.error("La respuesta no contiene token de acceso");
-                    setError("Error: La respuesta del servidor no incluye token de acceso");
-                }
-                return;
+                loginExitoso = true;
+                console.log('[LoginForm] Login exitoso con formato JSON');
             } catch (jsonError) {
-                console.error("Error con formato JSON, intentando con FormData:", jsonError);
-                // Si falla, intentamos con FormData como respaldo
-            }
-            
-            // Intentar con FormData (formato que espera OAuth2)
-            const formData = new FormData();
-            formData.append('username', email);
-            formData.append('password', password);
-            
-            const response = await axios.post(`${BACKEND_URL}/api/auth/login`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-            
-            console.log("Login exitoso con FormData");
-            
-            // Verificar si tenemos un token de acceso
-            if (response.data && response.data.access_token) {
-                // Almacenar el token
-                localStorage.setItem('token', response.data.access_token);
+                console.error('[LoginForm] Error con formato JSON:', jsonError);
                 
-                // Verificar que user existe antes de almacenarlo
-                if (response.data.user) {
-                    localStorage.setItem('user', JSON.stringify(response.data.user));
-                    
-                    // Redirigir según el rol del usuario
-                    const userRole = response.data.user.role;
-                    if (userRole === 'admin') {
-                        navigate('/admin');
-                    } else if (userRole === 'lawyer') {
-                        navigate('/abogado');
-                    } else {
-                        navigate('/cliente');
-                    }
-                } else {
-                    console.error("La respuesta no contiene datos de usuario");
-                    setError("Error: La respuesta del servidor no incluye datos de usuario");
+                // Solo intentar con FormData si el error no es 401 (Unauthorized)
+                if (jsonError.response && jsonError.response.status === 401) {
+                    throw jsonError; // Propagar error de credenciales incorrectas
                 }
-            } else {
-                console.error("La respuesta no contiene token de acceso");
-                setError("Error: La respuesta del servidor no incluye token de acceso");
+                
+                // Segundo intento: formato FormData
+                try {
+                    console.log('[LoginForm] Intentando login con FormData');
+                    const formData = new FormData();
+                    formData.append('username', email);
+                    formData.append('password', password);
+                    
+                    response = await axios.post(`${BACKEND_URL}/api/auth/login`, formData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
+                        },
+                        timeout: 10000 // Timeout de 10 segundos
+                    });
+                    loginExitoso = true;
+                    console.log('[LoginForm] Login exitoso con FormData');
+                } catch (formDataError) {
+                    console.error('[LoginForm] Error con FormData:', formDataError);
+                    throw formDataError; // Propagar el error
+                }
             }
-        } catch (err) {
-            console.error('Error de login:', err);
             
+            // Si llegamos aquí, alguno de los métodos tuvo éxito
+            if (!response || !response.data) {
+                throw new Error('La respuesta del servidor está vacía');
+            }
+            
+            // Verificar estructura de la respuesta
+            if (!response.data.access_token) {
+                console.error('[LoginForm] Respuesta sin token:', response.data);
+                throw new Error('La respuesta no contiene un token de acceso');
+            }
+            
+            // Almacenar el token
+            localStorage.setItem('token', response.data.access_token);
+            
+            // Verificar datos de usuario
+            if (!response.data.user) {
+                console.error('[LoginForm] Respuesta sin datos de usuario:', response.data);
+                throw new Error('La respuesta no contiene datos de usuario');
+            }
+            
+            // Almacenar datos de usuario
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+            
+            console.log('[LoginForm] Datos de usuario guardados correctamente');
+            
+            // Redirigir según el rol
+            const userRole = response.data.user.rol || response.data.user.role;
+            
+            if (!userRole) {
+                console.error('[LoginForm] Usuario sin rol definido:', response.data.user);
+                throw new Error('El usuario no tiene un rol definido');
+            }
+            
+            console.log(`[LoginForm] Rol del usuario: ${userRole}`);
+            
+            // Pequeña pausa para asegurar que localStorage se actualiza
+            setTimeout(() => {
+                if (userRole.toLowerCase() === 'admin') {
+                    navigate('/admin/metricas');
+                } else if (userRole.toLowerCase() === 'abogado' || userRole.toLowerCase() === 'lawyer') {
+                    navigate('/abogado');
+                } else {
+                    navigate('/cliente');
+                }
+            }, 100);
+            
+        } catch (err) {
+            console.error('[LoginForm] Error en el proceso de login:', err);
+            
+            // Garantizar que loading se desactiva
+            setLoading(false);
+            
+            // Manejar diferentes tipos de errores
             if (err.response) {
                 // El servidor respondió con un código de estado diferente de 2xx
-                if (err.response.status === 401) {
-                    setError(err.response.data.detail || 'Credenciales incorrectas');
-                } else if (err.response.status === 404) {
-                    setError(`Servicio de autenticación no disponible en ${BACKEND_URL}/api/auth/login`);
+                const statusCode = err.response.status;
+                
+                if (statusCode === 401) {
+                    setError('Credenciales incorrectas. Por favor verifica tu email y contraseña.');
+                } else if (statusCode === 404) {
+                    setError(`El servicio de autenticación no está disponible (404). URL: ${BACKEND_URL}/api/auth/login`);
+                } else if (statusCode === 500) {
+                    setError('Error interno del servidor. Por favor intenta más tarde.');
                 } else {
-                    setError(`Error HTTP ${err.response.status}: ${err.response.data.detail || 'Hubo un problema al iniciar sesión'}`);
+                    const errorMsg = err.response.data?.detail || err.response.data?.message || 'Error desconocido';
+                    setError(`Error HTTP ${statusCode}: ${errorMsg}`);
                 }
+                
+                // Log para depuración
+                console.error('Detalles de respuesta:', {
+                    status: err.response.status,
+                    headers: err.response.headers,
+                    data: err.response.data
+                });
             } else if (err.request) {
                 // La solicitud fue hecha pero no se recibió respuesta
-                setError(`No se pudo contactar al servidor en ${BACKEND_URL}. Verifica tu conexión y la URL del backend.`);
+                if (err.code === 'ECONNABORTED') {
+                    setError('La solicitud ha excedido el tiempo de espera. El servidor puede estar sobrecargado.');
+                } else {
+                    setError(`No se pudo contactar al servidor. Verifica tu conexión a internet y que la URL del backend (${BACKEND_URL}) sea correcta.`);
+                }
             } else {
-                // Algo ocurrió al configurar la solicitud
-                setError('Error al procesar la solicitud de inicio de sesión: ' + err.message);
+                // Error al configurar la solicitud
+                setError(`Error en la solicitud: ${err.message || 'Error desconocido'}`);
             }
+            
+            return; // Salir de la función
         } finally {
+            // Garantizar que el estado de carga se desactiva
             setLoading(false);
         }
     };
@@ -174,6 +207,7 @@ const LoginForm = () => {
                                 placeholder="Correo electrónico"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
+                                disabled={loading}
                             />
                         </div>
                         <div>
@@ -188,6 +222,7 @@ const LoginForm = () => {
                                 placeholder="Contraseña"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
+                                disabled={loading}
                             />
                         </div>
                     </div>
@@ -196,7 +231,7 @@ const LoginForm = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70"
                         >
                             {loading ? (
                                 <span className="absolute left-0 inset-y-0 flex items-center pl-3">
@@ -222,6 +257,7 @@ const LoginForm = () => {
                     <button 
                         onClick={() => setShowDebug(!showDebug)} 
                         className="text-sm text-gray-500 hover:text-gray-700"
+                        disabled={loading}
                     >
                         {showDebug ? 'Ocultar información técnica' : 'Mostrar información técnica'}
                     </button>
@@ -232,18 +268,6 @@ const LoginForm = () => {
                         <h3 className="text-sm font-medium text-gray-800">Información de depuración:</h3>
                         <p className="text-xs mt-1">Backend URL: {BACKEND_URL}</p>
                         <p className="text-xs mt-1">Endpoint: {`${BACKEND_URL}/api/auth/login`}</p>
-                        <div className="mt-2">
-                            <button 
-                                onClick={() => window.testLogin && window.testLogin(email, password)}
-                                className="text-xs px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
-                                disabled={!email || !password || !window.testLogin}
-                            >
-                                Ejecutar prueba de login
-                            </button>
-                        </div>
-                        <p className="text-xs mt-2 text-gray-500">
-                            Revisa la consola del navegador para ver los resultados de la prueba.
-                        </p>
                     </div>
                 )}
             </div>
