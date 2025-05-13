@@ -5,10 +5,10 @@
  */
 
 // URL del backend para las peticiones a la API
-export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://legalassista.onrender.com';
+export const BACKEND_URL = 'https://legalassista.onrender.com';
 
 // URL para WebSockets
-export const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || 'wss://legalassista.onrender.com/ws';
+export const WEBSOCKET_URL = 'wss://legalassista.onrender.com/ws';
 
 // Función para debugging de las URLs
 export const logApiCall = (endpoint) => {

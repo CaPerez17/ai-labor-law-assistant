@@ -12,10 +12,8 @@ import RecuperacionPassword from './components/RecuperacionPassword';
 import AdminAnalyticsDashboard from './components/AdminAnalyticsDashboard';
 import PrivateRoute from './components/PrivateRoute';
 
-// Importar archivo de configuración de emergencia
-import './config_override';
-// Importar desde config después de la sobrescritura de emergencia
-import { BACKEND_URL } from './config';
+// Importar la configuración con URLs fijas
+import { BACKEND_URL } from './config_override';
 
 function App() {
     const [user, setUser] = useState(null);
@@ -28,19 +26,6 @@ function App() {
             setUser(JSON.parse(storedUser));
         }
         setLoading(false);
-    }, []);
-
-    useEffect(() => {
-        // Verificar que la URL del backend sea correcta
-        console.log('[App] URL del backend configurada:', BACKEND_URL);
-        
-        // Intentar forzar la URL correcta desde window
-        if (window.forceCorrectBackendURL) {
-            const changed = window.forceCorrectBackendURL();
-            if (changed) {
-                console.warn('[App] La URL del backend ha sido corregida');
-            }
-        }
     }, []);
 
     const handleLogin = (userData) => {
