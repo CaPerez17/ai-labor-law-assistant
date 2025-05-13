@@ -5,8 +5,9 @@ Define los modelos de datos para el análisis automático de documentos legales.
 """
 
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from enum import Enum
+from datetime import datetime
 
 class TipoRiesgo(str, Enum):
     """Niveles de riesgo identificados en el documento"""
@@ -29,11 +30,35 @@ class Riesgo(BaseModel):
     clausulas_relacionadas: List[str] = Field(..., description="Títulos de las cláusulas relacionadas")
     recomendacion: str = Field(..., description="Recomendación para mitigar el riesgo")
 
+class DocumentoCreate(BaseModel):
+    """Modelo para crear un documento en el sistema"""
+    title: str
+    document_type: str
+    reference_number: str
+    issue_date: Optional[datetime] = None
+    source: Optional[str] = None
+    content: str
+    keywords: Optional[str] = None
+    category: Optional[str] = None
+    subcategory: Optional[str] = None
+
 class DocumentoResponse(BaseModel):
     """Modelo para la respuesta del análisis de documento"""
-    clausulas_destacadas: List[Clausula] = Field(..., description="Cláusulas importantes identificadas")
-    riesgos_detectados: List[Riesgo] = Field(..., description="Riesgos identificados en el documento")
-    resumen_general: str = Field(..., description="Resumen del contenido del documento")
-    recomendaciones: List[str] = Field(..., description="Recomendaciones generales")
-    tipo_documento: Optional[str] = Field(None, description="Tipo de documento identificado")
-    fecha_documento: Optional[str] = Field(None, description="Fecha del documento si se puede identificar") 
+    id: Optional[int] = None
+    nombre: Optional[str] = None
+    tipo: Optional[str] = None
+    fecha_subida: Optional[datetime] = None
+    estado: Optional[str] = None
+    usuario_id: Optional[int] = None
+    clausulas_destacadas: Optional[List[Clausula]] = None
+    riesgos_detectados: Optional[List[Riesgo]] = None
+    resumen_general: Optional[str] = None
+    recomendaciones: Optional[List[str]] = None
+    tipo_documento: Optional[str] = None
+    fecha_documento: Optional[str] = None
+
+class AnalisisResponse(BaseModel):
+    """Modelo para la respuesta del análisis detallado de un documento"""
+    documento_id: int = Field(..., description="ID del documento analizado")
+    resultado: Dict[str, Any] = Field(..., description="Resultado del análisis en formato JSON")
+    fecha_analisis: Optional[datetime] = Field(None, description="Fecha y hora del análisis") 

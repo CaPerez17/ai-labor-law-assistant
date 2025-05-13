@@ -219,6 +219,21 @@ ENV/
 .env.development.local
 .env.test.local
 .env.production.local
+*.env.example
+*credentials.json
+*secrets.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Scripts con credenciales
+*_secrets.sh
+*_password.sh
+*_credentials.sh
+*_creds.sh
+*_connection.sh
+connect_to_*.sh
 
 # Archivos de base de datos
 *.db
