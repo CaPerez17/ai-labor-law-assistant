@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { BACKEND_URL } from '../config_override';
 
-const LoginForm = () => {
+const LoginForm = (props) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -107,6 +107,12 @@ const LoginForm = () => {
             }
             
             console.log(`[LoginForm] Rol del usuario: ${userRole}`);
+            
+            // Pasar los datos de usuario al componente App a través de la función onLoginSuccess
+            if (props.onLoginSuccess) {
+                console.log('[LoginForm] Ejecutando onLoginSuccess con datos de usuario');
+                props.onLoginSuccess(response.data.user);
+            }
             
             // Pequeña pausa para asegurar que localStorage se actualiza
             setTimeout(() => {
