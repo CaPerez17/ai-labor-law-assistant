@@ -45,13 +45,25 @@ export const endpoints = {
 
 // Exportar funciones específicas para diferentes operaciones de API
 export const loginUser = async (email, password) => {
-  console.log(`[API] Intentando login en: ${apiClient.defaults.baseURL}${endpoints.auth.login}`);
+  console.log('POST a:', apiClient.defaults.baseURL + '/auth/login');
   
   try {
     // Primer intento: formato JSON
-    return await apiClient.post(endpoints.auth.login, { email, password });
+    const response = await apiClient.post(endpoints.auth.login, { email, password });
+    
+    // Logs para depuración
+    console.log('Login response status:', response.status);
+    console.log('Login response data:', response.data);
+    
+    return response;
   } catch (jsonError) {
     console.error('[API] Error en login con JSON:', jsonError);
+    
+    // Si hay una respuesta, mostrar detalles
+    if (jsonError.response) {
+      console.log('Error response status:', jsonError.response.status);
+      console.log('Error response data:', jsonError.response.data);
+    }
     
     // Solo intentar con FormData si el error no es 401 (Unauthorized)
     if (jsonError.response && jsonError.response.status === 401) {
@@ -71,7 +83,23 @@ export const loginUser = async (email, password) => {
       },
     };
     
-    return await apiClient.post(endpoints.auth.login, formData, formDataConfig);
+    try {
+      const formDataResponse = await apiClient.post(endpoints.auth.login, formData, formDataConfig);
+      
+      // Logs para depuración
+      console.log('FormData Login response status:', formDataResponse.status);
+      console.log('FormData Login response data:', formDataResponse.data);
+      
+      return formDataResponse;
+    } catch (formDataError) {
+      // Si hay una respuesta, mostrar detalles
+      if (formDataError.response) {
+        console.log('FormData Error response status:', formDataError.response.status);
+        console.log('FormData Error response data:', formDataError.response.data);
+      }
+      
+      throw formDataError;
+    }
   }
 };
 

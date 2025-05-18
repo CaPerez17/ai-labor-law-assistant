@@ -32,19 +32,27 @@ const LoginForm = (props) => {
             
             console.log('[LoginForm] Login exitoso, respuesta:', response.data);
             
+            // Verificar el status de la respuesta
+            if (response.status !== 200) {
+                console.error('[LoginForm] La respuesta no tiene status 200:', response.status);
+                throw new Error(`Error de autenticación: ${response.data.message || 'Respuesta del servidor inválida'}`);
+            }
+            
             // Si llegamos aquí, el login fue exitoso
             if (!response || !response.data) {
                 throw new Error('La respuesta del servidor está vacía');
             }
             
             // Verificar estructura de la respuesta
-            if (!response.data.access_token) {
+            const accessToken = response.data.access_token || response.data.token;
+            if (!accessToken) {
                 console.error('[LoginForm] Respuesta sin token:', response.data);
                 throw new Error('La respuesta no contiene un token de acceso');
             }
             
             // Almacenar el token
-            localStorage.setItem('token', response.data.access_token);
+            localStorage.setItem('token', accessToken);
+            console.log('[LoginForm] Token guardado en localStorage');
             
             // Verificar datos de usuario
             if (!response.data.user) {
@@ -54,8 +62,7 @@ const LoginForm = (props) => {
             
             // Almacenar datos de usuario
             localStorage.setItem('user', JSON.stringify(response.data.user));
-            
-            console.log('[LoginForm] Datos de usuario guardados correctamente');
+            console.log('[LoginForm] Datos de usuario guardados en localStorage:', response.data.user);
             
             // Redirigir según el rol
             const userRole = response.data.user.rol || response.data.user.role;
@@ -66,6 +73,9 @@ const LoginForm = (props) => {
             }
             
             console.log(`[LoginForm] Rol del usuario: ${userRole}`);
+            
+            // Desactivar estado de carga
+            setLoading(false);
             
             // Pasar los datos de usuario al componente App a través de la función onLoginSuccess
             // IMPORTANTE: Esto debe ser ANTES de navegar para evitar pérdida de estado
