@@ -14,7 +14,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ErrorScreen from './components/ErrorScreen';
 
 // Importar la configuración con URLs fijas
-import { BACKEND_URL } from './config_override';
+import { BACKEND_URL } from './config';
 
 function App() {
     const [user, setUser] = useState(null);

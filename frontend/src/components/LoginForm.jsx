@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { BACKEND_URL } from '../config_override';
+// Importar el cliente de API y la función login en lugar de axios directo
+import { loginUser } from '../api/apiClient';
+import { BACKEND_URL } from '../config';
 
 const LoginForm = (props) => {
     const [email, setEmail] = useState('');
@@ -23,57 +24,15 @@ const LoginForm = (props) => {
         setError('');
         setLoading(true);
         
-        console.log(`[LoginForm] Intentando login en: ${BACKEND_URL}/api/auth/login`);
+        console.log(`[LoginForm] Iniciando proceso de login...`);
 
         try {
-            // Intentar primero con formato JSON (preferido)
-            let response;
-            let loginExitoso = false;
+            // Utilizar la función loginUser que encapsula la lógica de login
+            const response = await loginUser(email, password);
             
-            // Primer intento: formato JSON
-            try {
-                console.log('[LoginForm] Intentando login con formato JSON');
-                response = await axios.post(`${BACKEND_URL}/api/auth/login`, {
-                    email: email,
-                    password: password
-                }, {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 10000 // Timeout de 10 segundos
-                });
-                loginExitoso = true;
-                console.log('[LoginForm] Login exitoso con formato JSON');
-            } catch (jsonError) {
-                console.error('[LoginForm] Error con formato JSON:', jsonError);
-                
-                // Solo intentar con FormData si el error no es 401 (Unauthorized)
-                if (jsonError.response && jsonError.response.status === 401) {
-                    throw jsonError; // Propagar error de credenciales incorrectas
-                }
-                
-                // Segundo intento: formato FormData
-                try {
-                    console.log('[LoginForm] Intentando login con FormData');
-                    const formData = new FormData();
-                    formData.append('username', email);
-                    formData.append('password', password);
-                    
-                    response = await axios.post(`${BACKEND_URL}/api/auth/login`, formData, {
-                        headers: {
-                            'Content-Type': 'multipart/form-data'
-                        },
-                        timeout: 10000 // Timeout de 10 segundos
-                    });
-                    loginExitoso = true;
-                    console.log('[LoginForm] Login exitoso con FormData');
-                } catch (formDataError) {
-                    console.error('[LoginForm] Error con FormData:', formDataError);
-                    throw formDataError; // Propagar el error
-                }
-            }
+            console.log('[LoginForm] Login exitoso, respuesta:', response.data);
             
-            // Si llegamos aquí, alguno de los métodos tuvo éxito
+            // Si llegamos aquí, el login fue exitoso
             if (!response || !response.data) {
                 throw new Error('La respuesta del servidor está vacía');
             }
@@ -158,7 +117,7 @@ const LoginForm = (props) => {
                 if (statusCode === 401) {
                     setError('Credenciales incorrectas. Por favor verifica tu email y contraseña.');
                 } else if (statusCode === 404) {
-                    setError(`El servicio de autenticación no está disponible (404). URL: ${BACKEND_URL}/api/auth/login`);
+                    setError(`El servicio de autenticación no está disponible (404). Verifica la URL de la API.`);
                 } else if (statusCode === 500) {
                     setError('Error interno del servidor. Por favor intenta más tarde.');
                 } else {
@@ -177,7 +136,7 @@ const LoginForm = (props) => {
                 if (err.code === 'ECONNABORTED') {
                     setError('La solicitud ha excedido el tiempo de espera. El servidor puede estar sobrecargado.');
                 } else {
-                    setError(`No se pudo contactar al servidor. Verifica tu conexión a internet y que la URL del backend (${BACKEND_URL}) sea correcta.`);
+                    setError(`No se pudo contactar al servidor. Verifica tu conexión a internet y que la URL del backend sea correcta.`);
                 }
             } else {
                 // Error al configurar la solicitud
