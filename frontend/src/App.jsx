@@ -10,7 +10,8 @@ import FacturacionUsuario from './components/FacturacionUsuario';
 import ActivacionCuenta from './components/ActivacionCuenta';
 import RecuperacionPassword from './components/RecuperacionPassword';
 import AdminAnalyticsDashboard from './components/AdminAnalyticsDashboard';
-import PrivateRoute from './components/PrivateRoute';
+import ProtectedRoute from './components/ProtectedRoute';
+import ErrorScreen from './components/ErrorScreen';
 
 // Importar la configuración con URLs fijas
 import { BACKEND_URL } from './config_override';
@@ -127,24 +128,14 @@ function App() {
     // Mostrar pantalla de error si hay un problema con los datos de usuario
     if (error) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 px-4">
-                <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
-                    <svg className="h-12 w-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <h2 className="text-xl font-semibold text-gray-800 mb-2">Ha ocurrido un error</h2>
-                    <p className="text-gray-600 mb-6">{error}</p>
-                    <button
-                        onClick={() => {
-                            handleLogout();
-                            window.location.href = '/login';
-                        }}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 focus:outline-none"
-                    >
-                        Volver a iniciar sesión
-                    </button>
-                </div>
-            </div>
+            <ErrorScreen 
+                message={error}
+                buttonText="Volver a iniciar sesión"
+                onRetry={() => {
+                    handleLogout();
+                    window.location.href = '/login';
+                }}
+            />
         );
     }
 
@@ -236,34 +227,122 @@ function App() {
                             path="/registro"
                             element={!user ? <RegistroForm /> : <Navigate to="/" />}
                         />
+                        
+                        {/* Rutas protegidas utilizando el componente ProtectedRoute */}
                         <Route
                             path="/cliente"
-                            element={user?.rol === 'cliente' ? <OnboardingAssistant /> : <Navigate to="/login" />}
+                            element={
+                                <ProtectedRoute 
+                                    user={user} 
+                                    roles={['cliente']} 
+                                    fallback={
+                                        <ErrorScreen 
+                                            message="No tienes permiso para acceder a esta página. Se requiere rol de cliente." 
+                                            buttonText="Volver al inicio"
+                                            onRetry={() => window.location.href = '/'}
+                                        />
+                                    }
+                                >
+                                    <OnboardingAssistant />
+                                </ProtectedRoute>
+                            }
                         />
+                        
                         <Route
                             path="/documento"
-                            element={user?.rol === 'cliente' ? <DocumentoAnalyzer /> : <Navigate to="/login" />}
+                            element={
+                                <ProtectedRoute 
+                                    user={user} 
+                                    roles={['cliente']} 
+                                    fallback={
+                                        <ErrorScreen 
+                                            message="No tienes permiso para acceder a esta página. Se requiere rol de cliente." 
+                                            buttonText="Volver al inicio"
+                                            onRetry={() => window.location.href = '/'}
+                                        />
+                                    }
+                                >
+                                    <DocumentoAnalyzer />
+                                </ProtectedRoute>
+                            }
                         />
+                        
                         <Route
                             path="/facturas"
-                            element={user?.rol === 'cliente' ? <FacturacionUsuario /> : <Navigate to="/login" />}
+                            element={
+                                <ProtectedRoute 
+                                    user={user} 
+                                    roles={['cliente']} 
+                                    fallback={
+                                        <ErrorScreen 
+                                            message="No tienes permiso para acceder a esta página. Se requiere rol de cliente." 
+                                            buttonText="Volver al inicio"
+                                            onRetry={() => window.location.href = '/'}
+                                        />
+                                    }
+                                >
+                                    <FacturacionUsuario />
+                                </ProtectedRoute>
+                            }
                         />
+                        
                         <Route
                             path="/abogado"
-                            element={user?.rol === 'abogado' ? <AbogadoDashboard /> : <Navigate to="/login" />}
+                            element={
+                                <ProtectedRoute 
+                                    user={user} 
+                                    roles={['abogado', 'lawyer']} 
+                                    fallback={
+                                        <ErrorScreen 
+                                            message="No tienes permiso para acceder a esta página. Se requiere rol de abogado." 
+                                            buttonText="Volver al inicio"
+                                            onRetry={() => window.location.href = '/'}
+                                        />
+                                    }
+                                >
+                                    <AbogadoDashboard />
+                                </ProtectedRoute>
+                            }
                         />
+                        
                         <Route
                             path="/admin/metricas"
-                            element={user?.rol === 'admin' ? <MetricasDashboard /> : <Navigate to="/login" />}
+                            element={
+                                <ProtectedRoute 
+                                    user={user} 
+                                    roles={['admin']} 
+                                    fallback={
+                                        <ErrorScreen 
+                                            message="No tienes permiso para acceder a esta página. Se requiere rol de administrador." 
+                                            buttonText="Volver al inicio"
+                                            onRetry={() => window.location.href = '/'}
+                                        />
+                                    }
+                                >
+                                    <MetricasDashboard />
+                                </ProtectedRoute>
+                            }
                         />
+                        
                         <Route
                             path="/admin/analytics"
                             element={
-                                <PrivateRoute roles={['admin']}>
+                                <ProtectedRoute 
+                                    user={user} 
+                                    roles={['admin']} 
+                                    fallback={
+                                        <ErrorScreen 
+                                            message="No tienes permiso para acceder a esta página. Se requiere rol de administrador." 
+                                            buttonText="Volver al inicio"
+                                            onRetry={() => window.location.href = '/'}
+                                        />
+                                    }
+                                >
                                     <AdminAnalyticsDashboard />
-                                </PrivateRoute>
+                                </ProtectedRoute>
                             }
                         />
+                        
                         <Route
                             path="/"
                             element={
@@ -276,6 +355,18 @@ function App() {
                                 ) : (
                                     <Navigate to="/login" />
                                 )
+                            }
+                        />
+                        
+                        {/* Ruta para cualquier otra URL que no exista */}
+                        <Route
+                            path="*"
+                            element={
+                                <ErrorScreen 
+                                    message="La página que buscas no existe."
+                                    buttonText="Volver al inicio"
+                                    onRetry={() => window.location.href = '/'}
+                                />
                             }
                         />
                     </Routes>

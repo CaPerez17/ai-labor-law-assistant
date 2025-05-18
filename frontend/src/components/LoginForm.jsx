@@ -109,21 +109,40 @@ const LoginForm = (props) => {
             console.log(`[LoginForm] Rol del usuario: ${userRole}`);
             
             // Pasar los datos de usuario al componente App a través de la función onLoginSuccess
+            // IMPORTANTE: Esto debe ser ANTES de navegar para evitar pérdida de estado
             if (props.onLoginSuccess) {
-                console.log('[LoginForm] Ejecutando onLoginSuccess con datos de usuario');
+                console.log('[LoginForm] Ejecutando onLoginSuccess con datos de usuario:', response.data.user);
                 props.onLoginSuccess(response.data.user);
+                
+                // Dar tiempo para que el estado se actualice antes de navegar
+                console.log('[LoginForm] Esperando antes de navegar...');
+                
+                setTimeout(() => {
+                    console.log('[LoginForm] Navegando a dashboard basado en rol:', userRole.toLowerCase());
+                    if (userRole.toLowerCase() === 'admin') {
+                        navigate('/admin/metricas');
+                    } else if (userRole.toLowerCase() === 'abogado' || userRole.toLowerCase() === 'lawyer') {
+                        navigate('/abogado');
+                    } else {
+                        navigate('/cliente');
+                    }
+                }, 500); // Aumentar el timeout para asegurar que el estado se actualiza
+            } else {
+                console.warn('[LoginForm] ¡ADVERTENCIA! props.onLoginSuccess no está definido');
+                console.log('[LoginForm] Estado actual de props:', props);
+                
+                // Fallback para navegar si no hay onLoginSuccess
+                setTimeout(() => {
+                    console.log('[LoginForm] Navegando a dashboard (sin onLoginSuccess) basado en rol:', userRole.toLowerCase());
+                    if (userRole.toLowerCase() === 'admin') {
+                        navigate('/admin/metricas');
+                    } else if (userRole.toLowerCase() === 'abogado' || userRole.toLowerCase() === 'lawyer') {
+                        navigate('/abogado');
+                    } else {
+                        navigate('/cliente');
+                    }
+                }, 500);
             }
-            
-            // Pequeña pausa para asegurar que localStorage se actualiza
-            setTimeout(() => {
-                if (userRole.toLowerCase() === 'admin') {
-                    navigate('/admin/metricas');
-                } else if (userRole.toLowerCase() === 'abogado' || userRole.toLowerCase() === 'lawyer') {
-                    navigate('/abogado');
-                } else {
-                    navigate('/cliente');
-                }
-            }, 100);
             
         } catch (err) {
             console.error('[LoginForm] Error en el proceso de login:', err);
