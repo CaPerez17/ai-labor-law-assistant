@@ -262,7 +262,8 @@ const LoginForm = (props) => {
                         <h3 className="text-sm font-medium text-gray-800">Información de depuración:</h3>
                         <p className="text-xs mt-1">Backend URL: {BACKEND_URL}</p>
                         <p className="text-xs mt-1">API Base URL: {`${BACKEND_URL}/api`}</p>
-                        <p className="text-xs mt-1">Endpoint Login: <code>/auth/login</code> (sin prefijo /api)</p>
+                        <p className="text-xs mt-1">Endpoint Login: <code>/auth/login</code></p>
+                        <p className="text-xs mt-1">URL completa: <code>{`${BACKEND_URL}/api/auth/login`}</code></p>
                     </div>
                 )}
             </div>

@@ -3,7 +3,7 @@ import { BACKEND_URL, API_PREFIX } from '../config';
 
 // Crear una instancia de axios con configuración base
 const apiClient = axios.create({
-  baseURL: BACKEND_URL,
+  baseURL: `${BACKEND_URL}${API_PREFIX}`,
   timeout: 15000, // 15 segundos
   headers: {
     'Content-Type': 'application/json',
@@ -29,24 +29,31 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Endpoints específicos de la API - Ahora SÍ deben incluir '/api' porque baseURL ya no lo tiene
+// Endpoints específicos de la API - NO incluyen '/api' porque baseURL ya lo tiene
 export const endpoints = {
   auth: {
-    login: '/api/auth/login',
-    register: '/api/auth/register',
-    refresh: '/api/auth/refresh',
+    login: '/auth/login',
+    register: '/auth/register',
+    refresh: '/auth/refresh',
   },
   user: {
-    profile: '/api/users/me',
-    update: '/api/users/update',
+    profile: '/users/me',
+    update: '/users/update',
   },
   // Otros endpoints que necesites
 };
 
+// Función para verificar y loggear la URL completa
+const logFullUrl = (endpoint) => {
+  const fullUrl = `${BACKEND_URL}${API_PREFIX}${endpoint}`;
+  console.log(`[API] URL completa: ${fullUrl}`);
+  return fullUrl;
+};
+
 // Exportar funciones específicas para diferentes operaciones de API
 export const loginUser = async (email, password) => {
-  // Log de URL completa para confirmar que no hay duplicación de '/api'
-  console.log('POST a:', apiClient.defaults.baseURL + endpoints.auth.login);
+  // Log de URL completa para verificar que no hay duplicación de '/api'
+  logFullUrl(endpoints.auth.login);
   
   try {
     // Primer intento: formato JSON
@@ -85,7 +92,9 @@ export const loginUser = async (email, password) => {
     };
     
     try {
-      // Usar el endpoint con prefijo /api
+      // Log de URL completa antes de hacer petición con FormData
+      logFullUrl(endpoints.auth.login);
+      
       const formDataResponse = await apiClient.post(endpoints.auth.login, formData, formDataConfig);
       
       // Logs para depuración
