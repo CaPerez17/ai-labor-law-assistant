@@ -3,7 +3,7 @@ import { BACKEND_URL, API_PREFIX } from '../config';
 
 // Crear una instancia de axios con configuración base
 const apiClient = axios.create({
-  baseURL: `${BACKEND_URL}${API_PREFIX}`,
+  baseURL: BACKEND_URL,
   timeout: 15000, // 15 segundos
   headers: {
     'Content-Type': 'application/json',
@@ -29,16 +29,16 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Endpoints específicos de la API - NO deben incluir '/api' porque baseURL ya lo tiene
+// Endpoints específicos de la API - Ahora SÍ deben incluir '/api' porque baseURL ya no lo tiene
 export const endpoints = {
   auth: {
-    login: '/auth/login',
-    register: '/auth/register',
-    refresh: '/auth/refresh',
+    login: '/api/auth/login',
+    register: '/api/auth/register',
+    refresh: '/api/auth/refresh',
   },
   user: {
-    profile: '/users/me',
-    update: '/users/update',
+    profile: '/api/users/me',
+    update: '/api/users/update',
   },
   // Otros endpoints que necesites
 };
@@ -85,7 +85,7 @@ export const loginUser = async (email, password) => {
     };
     
     try {
-      // Asegurarse de no duplicar '/api' - usar el mismo endpoint
+      // Usar el endpoint con prefijo /api
       const formDataResponse = await apiClient.post(endpoints.auth.login, formData, formDataConfig);
       
       // Logs para depuración
