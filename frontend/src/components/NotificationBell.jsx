@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import apiClient from '../api/apiClient';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
 const NotificationBell = () => {
     const [notificaciones, setNotificaciones] = useState([]);
@@ -34,12 +32,8 @@ const NotificationBell = () => {
             if (!token) return;
 
             const [notificacionesRes, noLeidasRes] = await Promise.all([
-                axios.get(`${BACKEND_URL}/api/notificaciones`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                }),
-                axios.get(`${BACKEND_URL}/api/notificaciones/contar-no-leidas`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                })
+                apiClient.get('/notificaciones'),
+                apiClient.get('/notificaciones/contar-no-leidas')
             ]);
 
             setNotificaciones(notificacionesRes.data);
@@ -51,12 +45,7 @@ const NotificationBell = () => {
 
     const marcarComoLeida = async (id) => {
         try {
-            const token = localStorage.getItem('token');
-            await axios.post(
-                `${BACKEND_URL}/api/notificaciones/${id}/marcar-leida`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            await apiClient.post(`/notificaciones/${id}/marcar-leida`);
             cargarNotificaciones();
         } catch (error) {
             console.error('Error al marcar notificación como leída:', error);
@@ -65,12 +54,7 @@ const NotificationBell = () => {
 
     const marcarTodasComoLeidas = async () => {
         try {
-            const token = localStorage.getItem('token');
-            await axios.post(
-                `${BACKEND_URL}/api/notificaciones/marcar-todas-leidas`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            await apiClient.post('/notificaciones/marcar-todas-leidas');
             cargarNotificaciones();
         } catch (error) {
             console.error('Error al marcar todas las notificaciones como leídas:', error);

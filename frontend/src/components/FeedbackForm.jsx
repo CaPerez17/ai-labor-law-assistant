@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import apiClient from '../api/apiClient';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
@@ -27,7 +27,7 @@ const FeedbackForm = ({
         setError(null);
 
         try {
-            const response = await axios.post(`${BACKEND_URL}/api/metricas/feedback/enviar`, {
+            const response = await apiClient.post('/metricas/feedback/enviar', {
                 usuario_id: usuarioId,
                 flujo: flujo,
                 calificacion: calificacion,

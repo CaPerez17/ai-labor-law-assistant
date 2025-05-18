@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { BACKEND_URL } from '../config';
+import apiClient from '../api/apiClient';
 
 const RegistroForm = () => {
     const [formData, setFormData] = useState({
@@ -79,8 +78,8 @@ const RegistroForm = () => {
                 company: formData.empresa
             };
             
-            console.log(`Registrando usuario en: ${BACKEND_URL}/api/auth/register`);
-            const response = await axios.post(`${BACKEND_URL}/api/auth/register`, userData);
+            console.log('Registrando usuario con apiClient');
+            const response = await apiClient.post('/auth/register', userData);
             
             setSuccess(true);
             

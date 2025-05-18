@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import apiClient from '../api/apiClient';
 import PreguntaForm from './PreguntaForm';
 import RespuestaLegal from './RespuestaLegal';
-import { BACKEND_URL } from '../config';
+import { BACKEND_URL, API_PREFIX } from '../config';
 
 const LegalAssistant = () => {
   const [query, setQuery] = useState('');
@@ -26,14 +26,10 @@ const LegalAssistant = () => {
     setResponse(null); // Limpiar respuesta anterior al enviar nueva consulta
     
     try {
-      console.log(`Consultando API en: ${BACKEND_URL}/api/ask/`);
-      // Usar la URL completa y asegurar que el cuerpo tenga el campo correcto
-      const result = await axios.post(`${BACKEND_URL}/api/ask/`, { 
+      console.log(`Consultando API en: ${BACKEND_URL}${API_PREFIX}/ask/`);
+      // Usar apiClient y el endpoint correcto
+      const result = await apiClient.post('/ask/', { 
         query: query 
-      }, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
       });
       
       console.log('Respuesta del servidor:', result.data);

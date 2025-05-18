@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * Componente para mostrar pantalla de error reutilizable
@@ -14,12 +15,21 @@ const ErrorScreen = ({
     buttonText = "Volver a intentar",
     onBack 
 }) => {
+    const navigate = useNavigate();
     
     // Función por defecto que redirige al login
     const handleDefaultAction = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        navigate('/login');
+    };
+    
+    const handleRetry = () => {
+        if (onRetry) {
+            onRetry();
+        } else {
+            handleDefaultAction();
+        }
     };
     
     return (
@@ -42,7 +52,7 @@ const ErrorScreen = ({
                     )}
                     
                     <button
-                        onClick={onRetry || handleDefaultAction}
+                        onClick={handleRetry}
                         className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 focus:outline-none"
                     >
                         {buttonText}
