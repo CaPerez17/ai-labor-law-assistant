@@ -12,6 +12,8 @@ export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://legalass
 export const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || 'wss://legalassista.onrender.com/ws';
 
 // Prefijo de API para todas las peticiones
+// IMPORTANTE: Este prefijo se concatena a BACKEND_URL en apiClient.js
+// Los endpoints NO deben incluir este prefijo nuevamente
 export const API_PREFIX = '/api';
 
 // Registrar las URLs para debugging

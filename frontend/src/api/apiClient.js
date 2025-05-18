@@ -29,7 +29,7 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Endpoints específicos de la API
+// Endpoints específicos de la API - NO deben incluir '/api' porque baseURL ya lo tiene
 export const endpoints = {
   auth: {
     login: '/auth/login',
@@ -45,7 +45,8 @@ export const endpoints = {
 
 // Exportar funciones específicas para diferentes operaciones de API
 export const loginUser = async (email, password) => {
-  console.log('POST a:', apiClient.defaults.baseURL + '/auth/login');
+  // Log de URL completa para confirmar que no hay duplicación de '/api'
+  console.log('POST a:', apiClient.defaults.baseURL + endpoints.auth.login);
   
   try {
     // Primer intento: formato JSON
@@ -84,6 +85,7 @@ export const loginUser = async (email, password) => {
     };
     
     try {
+      // Asegurarse de no duplicar '/api' - usar el mismo endpoint
       const formDataResponse = await apiClient.post(endpoints.auth.login, formData, formDataConfig);
       
       // Logs para depuración
