@@ -52,12 +52,27 @@ const logFullUrl = (endpoint) => {
 
 // Exportar funciones específicas para diferentes operaciones de API
 export const loginUser = async (email, password) => {
+  // Logs detallados antes de la petición
+  console.log('BACKEND_URL final →', BACKEND_URL);
+  console.log('API_PREFIX →', API_PREFIX);
+  console.log('Endpoint login →', endpoints.auth.login);
+  console.log('URL de petición →', BACKEND_URL + API_PREFIX + endpoints.auth.login);
+  
+  // Crear el payload correcto (username en lugar de email)
+  const payload = {
+    username: email, // El backend espera username, enviamos el email como username
+    password: password
+  };
+  
+  // Log del payload para debugging
+  console.log('Payload de login →', payload);
+  
   // Log de URL completa para verificar que no hay duplicación de '/api'
   logFullUrl(endpoints.auth.login);
   
   try {
-    // Primer intento: formato JSON
-    const response = await apiClient.post(endpoints.auth.login, { email, password });
+    // Primer intento: formato JSON con username
+    const response = await apiClient.post(endpoints.auth.login, payload);
     
     // Logs para depuración
     console.log('Login response status:', response.status);
@@ -81,8 +96,11 @@ export const loginUser = async (email, password) => {
     // Segundo intento: formato FormData (para compatibilidad con OAuth2)
     console.log('[API] Intentando login con FormData');
     const formData = new FormData();
-    formData.append('username', email);
+    formData.append('username', email); // Ya estaba correcto para FormData
     formData.append('password', password);
+    
+    // Log del formData para debugging
+    console.log('FormData de login → username:', email);
     
     // Crear una instancia separada para FormData
     const formDataConfig = {
