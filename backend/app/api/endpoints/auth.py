@@ -138,6 +138,10 @@ async def login(
         logger.info(f"🐛 [Auth] Received login request: {request.method} {request.url}")
         logger.info(f"Headers: {dict(request.headers)}")
         
+        # Log detallado del form-data
+        logger.info(f"🐛 [Auth] Raw form data → {form_data.__dict__}")
+        print(f"🐛 [Auth] Raw form data → {form_data.__dict__}")
+        
         # Intentar leer el cuerpo de la solicitud como JSON
         body = {}
         try:
@@ -160,6 +164,8 @@ async def login(
         email = form_data.username  # OAuth2PasswordRequestForm usa username
         password = form_data.password
         
+        logger.info(f"🔑 [Auth] Intentando login con email: {email}")
+        
         # Si tenemos body JSON, intentar obtener email y password de ahí
         if body:
             if 'email' in body:
@@ -172,8 +178,6 @@ async def login(
             if 'password' in body:
                 password = body['password']
                 logger.info("Usando password del body JSON (no logueado por seguridad)")
-        
-        logger.info(f"Autenticando usuario con email: {email}")
         
         # Verificar si estamos en modo demo
         demo_mode = os.environ.get("LEGALASSISTA_DEMO", "").lower() == "true"
@@ -204,20 +208,20 @@ async def login(
         # Buscar usuario por email
         usuario = db.query(Usuario).filter(Usuario.email == email).first()
         if not usuario:
-            logger.error(f"Usuario no encontrado: {email}")
+            logger.error(f"❌ [Auth] Usuario no encontrado: {email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Correo no registrado en LegalAssista"
             )
         
-        logger.info(f"Usuario encontrado: {email}, rol: {usuario.rol.value}")
+        logger.info(f"✅ [Auth] Usuario encontrado: {email}, rol: {usuario.rol.value}")
         
         # Verificar contraseña
         password_valid = verify_password(password, usuario.password_hash)
-        logger.info(f"Contraseña válida: {password_valid}")
+        logger.info(f"🔑 [Auth] Contraseña válida: {password_valid}")
         
         if not password_valid:
-            logger.error(f"Contraseña incorrecta para usuario: {email}")
+            logger.error(f"❌ [Auth] Contraseña incorrecta para usuario: {email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Contraseña incorrecta"
@@ -225,7 +229,7 @@ async def login(
         
         # Verificar si la cuenta está activa
         if not usuario.activo:
-            logger.error(f"Cuenta no activada: {email}")
+            logger.error(f"❌ [Auth] Cuenta no activada: {email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Cuenta no activada. Por favor, revisa tu correo electrónico para activarla."
@@ -252,7 +256,7 @@ async def login(
         )
         
         # Log de la respuesta que se enviará
-        logger.info(f"Respuesta de login para {email}: token generado y datos de usuario incluidos")
+        logger.info(f"📦 [Auth] Respuesta de login para {email}: token generado y datos de usuario incluidos")
         
         # Construir respuesta completa
         response = Token(
@@ -262,7 +266,7 @@ async def login(
         )
         
         # Log de validación final
-        logger.info(f"Validación de respuesta login:")
+        logger.info(f"🔍 [Auth] Validación de respuesta login:")
         logger.info(f"- access_token incluido: {bool(response.access_token)}")
         logger.info(f"- user incluido: {bool(response.user)}")
         if response.user:
@@ -274,7 +278,7 @@ async def login(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error de autenticación: {str(e)}", exc_info=True)
+        logger.error(f"❌ [Auth] Error de autenticación: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Error al procesar la solicitud de autenticación: {str(e)}"
