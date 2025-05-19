@@ -31,6 +31,7 @@ class Usuario(Base):
 
     # Relaciones
     casos = relationship("Caso", back_populates="usuario")
+    documentos = relationship("Documento", back_populates="usuario")
     metricas_uso = relationship("MetricaUso", back_populates="usuario")
     feedback = relationship("FeedbackUsuario", back_populates="usuario")
     notificaciones = relationship("Notificacion", back_populates="usuario")
