@@ -71,9 +71,19 @@ export const loginUser = async (email, password) => {
   logFullUrl(endpoints.auth.login);
   
   try {
-    // Usar formato JSON directamente
-    console.log('[API] Enviando petición de login en formato JSON');
-    const response = await apiClient.post(endpoints.auth.login, payload);
+    // Usar formato form-urlencoded según Opción A
+    console.log('[API] Enviando petición de login en formato form-urlencoded');
+    
+    // Convertir payload a forma urlencoded
+    const body = Object.entries(payload)
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+      .join('&');
+    
+    console.log('Form-urlencoded body →', body);
+    
+    const response = await apiClient.post(endpoints.auth.login, body, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
     
     // Logs para depuración
     console.log('Login response status:', response.status);
