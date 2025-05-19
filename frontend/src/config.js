@@ -4,8 +4,10 @@
  * para garantizar coherencia en toda la aplicación
  */
 
-// URL del backend para las peticiones a la API
-export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://legalassista.onrender.com';
+// Saneamiento definitivo de BACKEND_URL
+const raw = import.meta.env.VITE_BACKEND_URL || 'https://legalassista.onrender.com';
+// Elimina cualquier sufijo '/api' o '/api/' de raw
+export const BACKEND_URL = raw.replace(/\/api\/?$/, '');
 
 // URL para WebSockets
 export const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || 'wss://legalassista.onrender.com/ws';
@@ -15,6 +17,7 @@ export const API_PREFIX = '/api';
 
 // Registrar las URLs para debugging
 console.log('[CONFIG] URLs configuradas:', {
+  raw,
   BACKEND_URL,
   WEBSOCKET_URL,
   API_PREFIX,
