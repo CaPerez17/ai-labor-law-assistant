@@ -71,101 +71,26 @@ export const loginUser = async (email, password) => {
   logFullUrl(endpoints.auth.login);
   
   try {
-    // Función para convertir un objeto a formato x-www-form-urlencoded
-    const formUrlEncoded = (data) => {
-      return Object.keys(data)
-        .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(data[key]))
-        .join('&');
-    };
-    
-    // Primer intento: formato form-urlencoded (estándar OAuth2)
-    console.log('[API] Intentando login con formato form-urlencoded (OAuth2 standard)');
-    const encodedData = formUrlEncoded(payload);
-    console.log('Form data →', encodedData);
-    
-    const response = await apiClient.post(endpoints.auth.login, 
-      encodedData,
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      }
-    );
+    // Usar formato JSON directamente
+    console.log('[API] Enviando petición de login en formato JSON');
+    const response = await apiClient.post(endpoints.auth.login, payload);
     
     // Logs para depuración
     console.log('Login response status:', response.status);
     console.log('Login response data:', response.data);
     
     return response;
-  } catch (formEncodedError) {
-    console.error('[API] Error en login con form-urlencoded:', formEncodedError);
+  } catch (error) {
+    console.error('[API] Error en login:', error);
     
     // Si hay una respuesta, mostrar detalles
-    if (formEncodedError.response) {
-      console.log('Error response status:', formEncodedError.response.status);
-      console.log('Error response data:', formEncodedError.response.data);
+    if (error.response) {
+      console.log('Error response status:', error.response.status);
+      console.log('Error response data:', error.response.data);
     }
     
-    // Solo intentar con FormData si el error no es 401 (Unauthorized)
-    if (formEncodedError.response && formEncodedError.response.status === 401) {
-      throw formEncodedError;
-    }
-    
-    // Segundo intento (fallback): formato JSON
-    console.log('[API] Intentando login con JSON como fallback');
-    try {
-      const jsonResponse = await apiClient.post(endpoints.auth.login, payload);
-      
-      // Logs para depuración
-      console.log('JSON Login response status:', jsonResponse.status);
-      console.log('JSON Login response data:', jsonResponse.data);
-      
-      return jsonResponse;
-    } catch (jsonError) {
-      // Si hay una respuesta, mostrar detalles
-      if (jsonError.response) {
-        console.log('JSON Error response status:', jsonError.response.status);
-        console.log('JSON Error response data:', jsonError.response.data);
-      }
-      
-      // Tercer intento (última opción): formato FormData
-      console.log('[API] Intentando login con FormData como último recurso');
-      const formData = new FormData();
-      formData.append('username', email);
-      formData.append('password', password);
-      
-      // Log del formData para debugging
-      console.log('FormData de login → username:', email);
-      
-      // Crear una instancia separada para FormData
-      const formDataConfig = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      };
-      
-      try {
-        // Log de URL completa antes de hacer petición con FormData
-        logFullUrl(endpoints.auth.login);
-        
-        const formDataResponse = await apiClient.post(endpoints.auth.login, formData, formDataConfig);
-        
-        // Logs para depuración
-        console.log('FormData Login response status:', formDataResponse.status);
-        console.log('FormData Login response data:', formDataResponse.data);
-        
-        return formDataResponse;
-      } catch (formDataError) {
-        // Si hay una respuesta, mostrar detalles
-        if (formDataError.response) {
-          console.log('FormData Error response status:', formDataError.response.status);
-          console.log('FormData Error response data:', formDataError.response.data);
-        }
-        
-        // Si todos los intentos fallan, lanzar el error original
-        throw formEncodedError;
-      }
-    }
+    // Propagar el error
+    throw error;
   }
 };
 
