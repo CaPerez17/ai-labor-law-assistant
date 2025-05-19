@@ -206,15 +206,62 @@ async def login(
             password = "demo123"  # Contraseña estándar para usuarios demo
         
         # Buscar usuario por email
-        usuario = db.query(Usuario).filter(Usuario.email == email).first()
-        if not usuario:
-            logger.error(f"❌ [Auth] Usuario no encontrado: {email}")
+        try:
+            # Loguear la consulta SQL que se va a ejecutar
+            sql_query = str(db.query(Usuario).filter(Usuario.email == email).statement.compile(
+                compile_kwargs={"literal_binds": True}
+            ))
+            logger.info(f"🔍 [Auth] SQL query: {sql_query}")
+            
+            # Intentar primero obtener el Usuario como objeto completo para depurar
+            usuario = db.query(Usuario).filter(Usuario.email == email).first()
+            
+            # Verificar modelo importado y sus atributos
+            logger.info(f"🔍 [Auth] Clase Usuario importada: {Usuario}")
+            logger.info(f"🔍 [Auth] Atributos de la clase Usuario: {dir(Usuario)}")
+            
+            # Log del modelo de usuario encontrado
+            if usuario:
+                logger.info(f"✅ [Auth] Usuario encontrado: {email}, rol: {usuario.rol.value}")
+                logger.info(f"🔍 [Auth] Tipo del objeto usuario: {type(usuario)}")
+                logger.info(f"🔍 [Auth] Atributos del objeto usuario: {dir(usuario)}")
+                
+                # Log de las relaciones definidas en el modelo
+                for attr_name in ['documentos', 'casos', 'feedback', 'mensajes_enviados']:
+                    try:
+                        attr = getattr(type(usuario), attr_name, None)
+                        logger.info(f"🔍 [Auth] Relación '{attr_name}' definida: {attr is not None}")
+                        logger.info(f"🔍 [Auth] Tipo de relación '{attr_name}': {type(attr).__name__}")
+                    except Exception as e:
+                        logger.error(f"❌ [Auth] Error al acceder a la relación '{attr_name}': {str(e)}")
+                
+                # Verificar si el modelo tiene la relación documentos
+                has_documentos = hasattr(usuario, 'documentos')
+                logger.info(f"🔍 [Auth] Usuario tiene atributo documentos: {has_documentos}")
+                
+                # Intentar acceder a documentos (con manejo de excepciones)
+                try:
+                    if has_documentos:
+                        docs_count = len(usuario.documentos) if usuario.documentos else 0
+                        logger.info(f"🔍 [Auth] Usuario tiene {docs_count} documentos asociados")
+                except Exception as e:
+                    logger.error(f"❌ [Auth] Error al acceder a usuario.documentos: {str(e)}")
+            else:
+                logger.error(f"❌ [Auth] Usuario no encontrado: {email}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Correo no registrado en LegalAssista"
+                )
+            
+        except Exception as db_error:
+            logger.error(f"❌ [Auth] Error en la consulta de la base de datos: {str(db_error)}")
+            logger.error(f"Detalles de la excepción: {sys.exc_info()}")
+            import traceback
+            traceback.print_exc()
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Correo no registrado en LegalAssista"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error al procesar la solicitud: {str(db_error)}"
             )
-        
-        logger.info(f"✅ [Auth] Usuario encontrado: {email}, rol: {usuario.rol.value}")
         
         # Verificar contraseña
         password_valid = verify_password(password, usuario.password_hash)
