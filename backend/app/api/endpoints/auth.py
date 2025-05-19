@@ -12,6 +12,7 @@ from typing import Optional, Dict, Any
 import os
 import logging
 import json
+import sys
 
 from app.core.config import settings
 from app.core.security import create_access_token, verify_token, verify_password, get_password_hash
@@ -27,14 +28,45 @@ from app.schemas.auth import (
 )
 from app.services.auth_service import AuthService
 from app.services.email_service import EmailService
+from app.core.registry import registry
+
+# Configurar logger con nivel de debug para máxima información
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Log inicial para diagnóstico
+logger.info("Cargando módulo de autenticación auth.py")
+logger.info(f"Versión de Python: {sys.version}")
+logger.info(f"Ruta del sistema: {sys.path}")
+
+# Verificar que registry esté configurado
+if not registry.is_configured:
+    logger.warning("Registry no configurado al cargar endpoints de autenticación")
+    registry.configure()
+    logger.info("Registry configurado desde auth.py")
+else:
+    logger.info("Registry ya estaba configurado")
 
 router = APIRouter()
-auth_service = AuthService()
-email_service = EmailService()
+logger.info("Router de autenticación creado correctamente")
 
-# Configurar logger
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+# Inicialización de servicios
+# Intentar obtener auth_service desde registry o crear uno nuevo
+auth_service = registry.get_service("auth_service")
+if auth_service is None:
+    logger.warning("No se encontró auth_service en registry, creando nueva instancia")
+    auth_service = AuthService()
+else:
+    logger.info("Usando auth_service desde registry")
+
+# Intentar obtener email_service desde registry o crear uno nuevo
+email_service = registry.get_service("email_service")
+if email_service is None:
+    logger.warning("No se encontró email_service en registry, creando nueva instancia")
+    email_service = EmailService()
+    registry.register_service("email_service", email_service)
+else:
+    logger.info("Usando email_service desde registry")
 
 @router.post("/registro", response_model=UsuarioResponse)
 async def registro(
@@ -103,7 +135,7 @@ async def login(
     """
     try:
         # Log de la solicitud entrante
-        logger.info(f"Intento de login: endpoint=/api/auth/login, método={request.method}")
+        logger.info(f"🐛 [Auth] Received login request: {request.method} {request.url}")
         logger.info(f"Headers: {dict(request.headers)}")
         
         # Intentar leer el cuerpo de la solicitud como JSON
@@ -209,7 +241,7 @@ async def login(
             }
         )
         
-        logger.info(f"Token generado exitosamente para usuario: {email}")
+        logger.info(f"✅ [Auth] Login successful for {email}")
         
         # Construir objeto UserData para respuesta
         user_data = UserData(

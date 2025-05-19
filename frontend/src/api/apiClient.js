@@ -52,49 +52,23 @@ const logFullUrl = (endpoint) => {
 
 // Exportar funciones específicas para diferentes operaciones de API
 export const loginUser = async (email, password) => {
-  // Logs detallados antes de la petición
-  console.log('BACKEND_URL final →', BACKEND_URL);
-  console.log('API_PREFIX →', API_PREFIX);
-  console.log('Endpoint login →', endpoints.auth.login);
-  console.log('URL de petición →', BACKEND_URL + API_PREFIX + endpoints.auth.login);
-  
-  // Crear el payload correcto (username en lugar de email)
   const payload = { username: email, password };
-  
-  // Log del payload para debugging
-  console.log('Payload de login →', payload);
-  
-  // Log de URL completa para verificar que no hay duplicación de '/api'
-  logFullUrl(endpoints.auth.login);
-  
-  try {
-    const body = Object.entries(payload)
-      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-      .join('&');
+  const body = Object.entries(payload)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&');
 
-    console.log('[API] Enviando login como form-urlencoded:', body);
+  console.log('[API] URL completa →', BACKEND_URL + API_PREFIX + endpoints.auth.login);
+  console.log('[API] body form-urlencoded →', body);
 
-    const response = await apiClient.post(endpoints.auth.login, body, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    });
-    
-    // Logs para depuración
-    console.log('Login response status:', response.status);
-    console.log('Login response data:', response.data);
-    
-    return response;
-  } catch (error) {
-    console.error('[API] Error en login:', error);
-    
-    // Si hay una respuesta, mostrar detalles
-    if (error.response) {
-      console.log('Error response status:', error.response.status);
-      console.log('Error response data:', error.response.data);
-    }
-    
-    // Propagar el error
-    throw error;
-  }
+  const response = await apiClient.post(
+    endpoints.auth.login,
+    body,
+    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }}
+  );
+
+  console.log('Login response status:', response.status);
+  console.log('Login response data:', response.data);
+  return response;
 };
 
 // Exportar el cliente API para su uso en toda la aplicación
