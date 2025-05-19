@@ -34,7 +34,8 @@ origins = [
     "http://localhost:5173",
     "http://localhost:5174",
     "https://legalassista-frontend.onrender.com",
-    "https://legalassista.onrender.com"
+    "https://legalassista.onrender.com",
+    "https://legalassista-frontend.onrender.com",  # Dominio del frontend en producción
 ]
 
 # Configurar CORS
@@ -42,8 +43,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    max_age=86400,  # Caché de preflight por 24 horas
 )
 
 # Log para registrar la configuración de CORS
