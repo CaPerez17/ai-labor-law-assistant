@@ -17,17 +17,30 @@ from app.models.usuario import Usuario, RolUsuario
 from app.schemas.auth import UsuarioCreate, TokenData
 from app.db.session import get_db
 from app.core.security import get_password_hash, verify_password, SECRET_KEY, ALGORITHM
+from app.core.registry import registry
 
 # Configuración de seguridad
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # Configurar logger
 logger = logging.getLogger(__name__)
+logger.info("Inicializando servicio de autenticación")
 
+# Configurar OAuth2PasswordBearer con la ruta correcta
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+logger.info("oauth2_scheme configurado con tokenUrl='api/auth/login'")
 
 class AuthService:
     """Servicio para manejar la autenticación y autorización"""
+    
+    def __init__(self):
+        # Registrar este servicio en el registry
+        if not registry.is_configured:
+            logger.warning("Registry no configurado al inicializar AuthService")
+            registry.configure()
+        
+        registry.register_service("auth_service", self)
+        logger.info("AuthService registrado en registry")
 
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -171,6 +184,11 @@ class AuthService:
         db.commit()
         db.refresh(db_user)
         return db_user
+
+    @staticmethod
+    async def registrar_usuario(db: Session, user_data: UsuarioCreate) -> Usuario:
+        """Alias de register_user para mantener compatibilidad"""
+        return AuthService.register_user(user_data, db)
 
     @staticmethod
     def authenticate_user(email: str, password: str, db: Session) -> Optional[Usuario]:
