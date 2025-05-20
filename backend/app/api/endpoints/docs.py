@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, File, Form, UploadFile, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import date
+from datetime import date, datetime
 import os
 import shutil
 from pathlib import Path
@@ -36,30 +36,32 @@ async def upload_document(
         with file_path.open("wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        # Crear registro en BD
+        # Procesar documento
+        try:
+            texto_procesado = procesar_documento(str(file_path))
+        except Exception as e:
+            print(f"Error procesando documento {file.filename}: {str(e)}")
+            texto_procesado = None
+        
+        # Crear registro en BD con estructura actualizada
+        now = datetime.now()
         documento = Documento(
-            nombre_archivo=file.filename,
-            ruta=str(file_path),
-            fecha=fecha,
-            numero_ley=numero_ley,
-            categoria=categoria,
-            subcategoria=subcategoria,
+            nombre=file.filename,  # nombre en lugar de nombre_archivo
+            tipo=f"{categoria}/{subcategoria}",  # Combinamos categoría y subcategoría
+            contenido=texto_procesado,  # Guardamos el texto procesado
+            fecha_subida=now,
+            fecha_creacion=now,
+            resultado_analisis=f"Número de ley: {numero_ley}, Fecha: {fecha}",  # Guardamos metadatos como resultado
+            estado="procesado",
             usuario_id=usuario.id
         )
         db.add(documento)
         db.commit()
         db.refresh(documento)
         
-        # Procesar documento en segundo plano
-        try:
-            texto_procesado = procesar_documento(str(file_path))
-            # TODO: Guardar texto_procesado en BD
-        except Exception as e:
-            print(f"Error procesando documento {file.filename}: {str(e)}")
-        
         return {
             "id": documento.id,
-            "filename": documento.nombre_archivo,
+            "filename": documento.nombre,  # nombre en lugar de nombre_archivo
             "message": "Documento subido exitosamente"
         }
         
