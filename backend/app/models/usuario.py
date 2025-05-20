@@ -8,6 +8,7 @@ from sqlalchemy import Column, Integer, String, Enum, DateTime, func, Boolean
 from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 import enum
+from datetime import datetime
 
 class RolUsuario(str, enum.Enum):
     """Roles disponibles en el sistema"""
@@ -28,6 +29,7 @@ class Usuario(Base):
     fecha_actualizacion = Column(DateTime(timezone=True), onupdate=func.now())
     activo = Column(Boolean, default=True)
     recibir_emails = Column(Boolean, default=True)
+    fecha_registro = Column(DateTime, default=datetime.utcnow)
 
     # Relaciones
     casos = relationship("Caso", back_populates="usuario")
