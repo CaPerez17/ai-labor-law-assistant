@@ -284,4 +284,78 @@ chmod +x frontend/scripts/run_dev.sh
    - Ver analytics
    - Configurar sistema
 
+## Administración de Usuarios
+
+### Scripts de Administración
+
+El sistema incluye scripts para gestionar usuarios directamente en la base de datos:
+
+#### Crear Usuarios
+
+```bash
+# Crear un usuario administrador
+python backend/create_users_direct.py --role admin --email admin@legalassista.com --password Admin123!
+
+# Crear un usuario abogado
+python backend/create_users_direct.py --role abogado --email abogado@legalassista.com --password Abogado123!
+
+# Crear un usuario cliente
+python backend/create_users_direct.py --role cliente --email cliente@legalassista.com --password Cliente123!
+
+# Crear un usuario demo
+python backend/create_users_direct.py --role cliente --email demo@legalassista.com --password Demo123! --demo
+```
+
+#### Listar Usuarios
+
+```bash
+# Listar todos los usuarios
+python backend/list_users.py
+
+# Listar usuarios por rol
+python backend/list_users.py --role admin
+python backend/list_users.py --role abogado
+python backend/list_users.py --role cliente
+```
+
+### Notas Importantes
+
+- Los scripts requieren acceso a la base de datos de producción
+- Las contraseñas deben tener al menos 8 caracteres
+- Los roles válidos son: `admin`, `abogado`, `cliente`
+- Los usuarios demo se marcan automáticamente como inactivos
+
+## Tests
+
+### Instalación de Dependencias
+
+```bash
+cd backend
+pip install -r requirements-test.txt
+```
+
+### Ejecutar Tests
+
+```bash
+# Ejecutar todos los tests
+pytest
+
+# Ejecutar tests con cobertura
+pytest --cov=app tests/
+
+# Ejecutar tests específicos
+pytest tests/test_auth.py
+```
+
+### Notas sobre Tests
+
+- Los tests utilizan una base de datos SQLite en memoria
+- Cada test se ejecuta en una transacción aislada
+- La base de datos se limpia automáticamente después de cada test
+- Los tests cubren:
+  - Registro de usuarios
+  - Login de usuarios
+  - Validación de datos
+  - Manejo de errores
+
 
