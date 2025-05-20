@@ -9,12 +9,20 @@ const MetricasDashboard = () => {
 
     const cargarEstadisticas = async () => {
         try {
+            console.log('Intentando cargar estadísticas desde:', endpoints.metricas.estadisticas);
             const response = await apiClient.get(endpoints.metricas.estadisticas);
+            console.log('Respuesta recibida:', response.data);
             setEstadisticas(response.data);
             setError(null);
         } catch (err) {
-            console.error('Error al cargar métricas:', err.response?.data || err);
-            setError(err.response?.data?.detail || 'Error desconocido al cargar métricas');
+            console.error('Error al cargar métricas:', err);
+            console.error('Detalles del error:', {
+                mensaje: err.message,
+                statusCode: err.response?.status,
+                statusText: err.response?.statusText,
+                data: err.response?.data
+            });
+            setError(err.response?.data?.detail || err.message || 'Error desconocido al cargar métricas');
         } finally {
             setCargando(false);
         }
@@ -23,9 +31,11 @@ const MetricasDashboard = () => {
     const exportarMetricas = async () => {
         setExportando(true);
         try {
+            console.log('Intentando exportar métricas desde:', endpoints.metricas.exportar);
             const response = await apiClient.get(endpoints.metricas.exportar, {
                 responseType: 'blob'
             });
+            console.log('Respuesta de exportación recibida:', response.status);
             
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
@@ -35,8 +45,14 @@ const MetricasDashboard = () => {
             link.click();
             link.remove();
         } catch (err) {
-            console.error('Error al exportar métricas:', err.response?.data || err);
-            setError(err.response?.data?.detail || 'Error desconocido al exportar métricas');
+            console.error('Error al exportar métricas:', err);
+            console.error('Detalles del error de exportación:', {
+                mensaje: err.message,
+                statusCode: err.response?.status,
+                statusText: err.response?.statusText,
+                data: err.response?.data
+            });
+            setError(err.response?.data?.detail || err.message || 'Error desconocido al exportar métricas');
         } finally {
             setExportando(false);
         }
