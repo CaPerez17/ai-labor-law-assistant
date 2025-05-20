@@ -27,6 +27,13 @@ from app.models.mensaje import Mensaje
 # access to the values within the .ini file in use.
 config = context.config
 
+# Sobreescribir la URL de la base de datos con la variable de entorno
+# Esto permite que ${DATABASE_URL} en alembic.ini sea reemplazado
+# por el valor real de la variable de entorno
+database_url = os.environ.get("DATABASE_URL")
+if database_url:
+    config.set_main_option("sqlalchemy.url", database_url)
+
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
