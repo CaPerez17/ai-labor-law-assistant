@@ -40,6 +40,11 @@ export const endpoints = {
     profile: '/users/me',
     update: '/users/update',
   },
+  metricas: {
+    estadisticas: '/metricas/estadisticas',
+    exportar: '/metricas/exportar',
+    registrar: '/metricas/registrar'
+  },
   // Otros endpoints que necesites
 };
 

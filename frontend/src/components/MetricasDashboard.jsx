@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+import apiClient, { endpoints } from '../api/apiClient';
 
 const MetricasDashboard = () => {
     const [estadisticas, setEstadisticas] = useState(null);
@@ -11,12 +9,12 @@ const MetricasDashboard = () => {
 
     const cargarEstadisticas = async () => {
         try {
-            const response = await axios.get(`${BACKEND_URL}/api/metricas/estadisticas`);
+            const response = await apiClient.get(endpoints.metricas.estadisticas);
             setEstadisticas(response.data);
             setError(null);
         } catch (err) {
-            setError('Error al cargar las estadísticas');
-            console.error('Error:', err);
+            console.error('Error al cargar métricas:', err.response?.data || err);
+            setError(err.response?.data?.detail || 'Error desconocido al cargar métricas');
         } finally {
             setCargando(false);
         }
@@ -25,7 +23,7 @@ const MetricasDashboard = () => {
     const exportarMetricas = async () => {
         setExportando(true);
         try {
-            const response = await axios.get(`${BACKEND_URL}/api/metricas/exportar`, {
+            const response = await apiClient.get(endpoints.metricas.exportar, {
                 responseType: 'blob'
             });
             
@@ -37,8 +35,8 @@ const MetricasDashboard = () => {
             link.click();
             link.remove();
         } catch (err) {
-            setError('Error al exportar las métricas');
-            console.error('Error:', err);
+            console.error('Error al exportar métricas:', err.response?.data || err);
+            setError(err.response?.data?.detail || 'Error desconocido al exportar métricas');
         } finally {
             setExportando(false);
         }

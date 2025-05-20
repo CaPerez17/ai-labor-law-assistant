@@ -36,18 +36,14 @@ const LoginForm = (props) => {
             localStorage.setItem('user', JSON.stringify(user));
             
             // Redirigir según el rol
-            switch (user.role) {
-                case 'admin':
-                    navigate('/admin/dashboard');
-                    break;
-                case 'abogado':
-                    navigate('/abogado/dashboard');
-                    break;
-                case 'cliente':
-                    navigate('/cliente/dashboard');
-                    break;
-                default:
-                    navigate('/dashboard');
+            if (user.rol === 'admin') {
+                navigate('/admin/metricas');
+            } else if (user.rol === 'abogado') {
+                navigate('/abogado/dashboard');
+            } else if (user.rol === 'cliente') {
+                navigate('/cliente/dashboard');
+            } else {
+                navigate('/dashboard');
             }
         } catch (err) {
             console.error('❌ Error en login:', err);
