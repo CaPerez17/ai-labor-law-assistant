@@ -326,9 +326,12 @@ async def login(
         raise
     except Exception as e:
         logger.error(f"❌ [Auth] Error de autenticación: {str(e)}", exc_info=True)
+        import traceback
+        traceback_str = ''.join(traceback.format_tb(e.__traceback__))
+        logger.error(f"Stack trace completo:\n{traceback_str}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Error al procesar la solicitud de autenticación: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno al procesar login: {str(e)}"
         )
 
 @router.post("/activar/{token}")
