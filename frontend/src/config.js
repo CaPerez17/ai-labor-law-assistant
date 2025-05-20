@@ -13,7 +13,7 @@ export const BACKEND_URL = raw.replace(/\/api\/?$/, '');
 export const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || 'wss://legalassista.onrender.com/ws';
 
 // Prefijo de API para todas las peticiones
-export const API_PREFIX = '/api';
+export const API_PREFIX = '/api/v1';
 
 // Registrar las URLs para debugging
 console.log('[CONFIG] URLs configuradas:', {

@@ -74,4 +74,4 @@ def healthz():
     return {"status": "ok"}
 
 # Incluir el router de la API
-app.include_router(api_router, prefix="/api") 
+app.include_router(api_router, prefix=settings.API_V1_STR) 

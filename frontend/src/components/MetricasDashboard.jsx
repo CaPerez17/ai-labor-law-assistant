@@ -1,58 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import apiClient, { endpoints, testMetricasEndpoints } from '../api/apiClient';
-import { BACKEND_URL, API_PREFIX } from '../config';
+import apiClient, { endpoints } from '../api/apiClient';
 
 const MetricasDashboard = () => {
     const [estadisticas, setEstadisticas] = useState(null);
     const [error, setError] = useState(null);
     const [cargando, setCargando] = useState(true);
     const [exportando, setExportando] = useState(false);
-    const [resultadosPrueba, setResultadosPrueba] = useState(null);
-
-    const probarEndpointsAlternativos = async () => {
-        try {
-            const resultados = await testMetricasEndpoints();
-            setResultadosPrueba(resultados);
-            // Si alguna alternativa funcionó, vamos a mostrar un mensaje de sugerencia
-            const alternativaExitosa = resultados.find(r => r.success);
-            if (alternativaExitosa) {
-                setError(`Recomendación: Utilizar la URL base "${alternativaExitosa.label}". Comprueba la configuración en config.js y apiClient.js`);
-            }
-        } catch (err) {
-            console.error("Error al probar endpoints alternativos:", err);
-        }
-    };
 
     const cargarEstadisticas = async () => {
         try {
-            // Config y diagnostico
-            console.log('Config:', { BACKEND_URL, API_PREFIX });
-            console.log('Metricas URL →', BACKEND_URL + API_PREFIX + endpoints.metricas.estadisticas);
-            console.log('URL completa:', `${BACKEND_URL}${API_PREFIX}${endpoints.metricas.estadisticas}`);
-            console.log('Token JWT presente:', !!localStorage.getItem('token'));
-            
             const response = await apiClient.get(endpoints.metricas.estadisticas);
-            console.log('Respuesta recibida:', response.data);
             setEstadisticas(response.data);
             setError(null);
         } catch (err) {
             console.error('Error al cargar métricas:', err);
-            console.error('Detalles del error:', {
-                mensaje: err.message,
-                statusCode: err.response?.status,
-                statusText: err.response?.statusText,
-                data: err.response?.data
-            });
-            
-            // Mensaje de error más descriptivo
-            if (err.response?.status === 404) {
-                setError(`Endpoint no encontrado: ${endpoints.metricas.estadisticas} - Verifique la ruta en el backend.`);
-                
-                // Si hay un error 404, probar endpoints alternativos
-                probarEndpointsAlternativos();
-            } else {
-                setError(err.response?.data?.detail || err.message || 'Error desconocido al cargar métricas');
-            }
+            setError(err.response?.data?.detail || err.message || 'Error al cargar métricas');
         } finally {
             setCargando(false);
         }
@@ -61,11 +23,9 @@ const MetricasDashboard = () => {
     const exportarMetricas = async () => {
         setExportando(true);
         try {
-            console.log('Intentando exportar métricas desde:', endpoints.metricas.exportar);
             const response = await apiClient.get(endpoints.metricas.exportar, {
                 responseType: 'blob'
             });
-            console.log('Respuesta de exportación recibida:', response.status);
             
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
@@ -76,13 +36,7 @@ const MetricasDashboard = () => {
             link.remove();
         } catch (err) {
             console.error('Error al exportar métricas:', err);
-            console.error('Detalles del error de exportación:', {
-                mensaje: err.message,
-                statusCode: err.response?.status,
-                statusText: err.response?.statusText,
-                data: err.response?.data
-            });
-            setError(err.response?.data?.detail || err.message || 'Error desconocido al exportar métricas');
+            setError(err.response?.data?.detail || err.message || 'Error al exportar métricas');
         } finally {
             setExportando(false);
         }
@@ -91,27 +45,6 @@ const MetricasDashboard = () => {
     useEffect(() => {
         cargarEstadisticas();
     }, []);
-
-    // Renderizar resultados de prueba de endpoints alternativos
-    const renderResultadosPrueba = () => {
-        if (!resultadosPrueba) return null;
-        
-        return (
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <h3 className="text-lg font-medium mb-2">Resultados de prueba de endpoints:</h3>
-                <ul className="space-y-2">
-                    {resultadosPrueba.map((resultado, index) => (
-                        <li key={index} className={`p-2 rounded ${resultado.success ? 'bg-green-100' : 'bg-red-100'}`}>
-                            <span className="font-medium">{resultado.label}:</span> 
-                            {resultado.success 
-                                ? ` ✅ Funcionó (Status: ${resultado.status})` 
-                                : ` ❌ Falló (${resultado.status || resultado.message})`}
-                        </li>
-                    ))}
-                </ul>
-            </div>
-        );
-    };
 
     if (cargando) {
         return (
@@ -131,7 +64,6 @@ const MetricasDashboard = () => {
                 >
                     Reintentar
                 </button>
-                {renderResultadosPrueba()}
             </div>
         );
     }
