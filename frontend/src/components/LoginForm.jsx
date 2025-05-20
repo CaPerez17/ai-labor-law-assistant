@@ -23,29 +23,31 @@ const LoginForm = (props) => {
         setLoading(true);
         setError('');
         try {
-            const response = await loginUser(email, password);
-            console.log('✅ Login exitoso:', response);
-            if (response?.user) {
-                // Guardar el token en localStorage
-                localStorage.setItem('token', response.access_token);
-                // Guardar datos del usuario
-                localStorage.setItem('user', JSON.stringify(response.user));
-                // Redirigir según el rol
-                switch (response.user.role) {
-                    case 'admin':
-                        navigate('/admin/dashboard');
-                        break;
-                    case 'abogado':
-                        navigate('/abogado/dashboard');
-                        break;
-                    case 'cliente':
-                        navigate('/cliente/dashboard');
-                        break;
-                    default:
-                        navigate('/dashboard');
-                }
-            } else {
-                setError('Error: No se recibieron datos del usuario');
+            const { token, user } = await loginUser(email, password);
+            console.log('✅ Login exitoso:', { token, user });
+            
+            if (!user) {
+                throw new Error('No se recibieron datos del usuario');
+            }
+            
+            // Guardar el token en localStorage
+            localStorage.setItem('token', token);
+            // Guardar datos del usuario
+            localStorage.setItem('user', JSON.stringify(user));
+            
+            // Redirigir según el rol
+            switch (user.role) {
+                case 'admin':
+                    navigate('/admin/dashboard');
+                    break;
+                case 'abogado':
+                    navigate('/abogado/dashboard');
+                    break;
+                case 'cliente':
+                    navigate('/cliente/dashboard');
+                    break;
+                default:
+                    navigate('/dashboard');
             }
         } catch (err) {
             console.error('❌ Error en login:', err);

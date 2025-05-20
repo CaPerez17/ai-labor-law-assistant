@@ -68,7 +68,9 @@ export const loginUser = async (email, password) => {
 
   console.log('Login response status:', response.status);
   console.log('Login response data:', response.data);
-  return response;
+  
+  const { access_token, user } = response.data;
+  return { token: access_token, user };
 };
 
 // Exportar el cliente API para su uso en toda la aplicación
