@@ -17,7 +17,7 @@ from app.db.session import get_db
 router = APIRouter()
 metricas_service = MetricasService()
 
-@router.post("/metricas/registrar")
+@router.post("/registrar")
 async def registrar_metrica(
     metrica: MetricaUso,
     db: Session = Depends(get_db)
@@ -70,7 +70,7 @@ async def enviar_feedback(
             detail=f"Error al registrar el feedback: {str(e)}"
         )
 
-@router.get("/metricas/estadisticas")
+@router.get("/estadisticas")
 async def obtener_estadisticas(
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
@@ -94,7 +94,7 @@ async def obtener_estadisticas(
             detail=f"Error al obtener estadísticas: {str(e)}"
         )
 
-@router.get("/metricas/exportar")
+@router.get("/exportar")
 async def exportar_metricas(
     db: Session = Depends(get_db)
 ) -> Dict[str, str]:
