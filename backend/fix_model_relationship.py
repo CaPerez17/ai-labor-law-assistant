@@ -7,6 +7,7 @@ import os
 import sys
 from pathlib import Path
 import logging
+import argparse
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -23,17 +24,37 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.sql import text
 
-# Obtener DATABASE_URL de las variables de entorno o usar un valor predeterminado
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/legalassista")
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Reparar la relación entre usuarios y documentos en la base de datos')
+    parser.add_argument('--postgres', type=str, help='URL de conexión PostgreSQL')
+    return parser.parse_args()
 
-# Crear el motor de la base de datos
-engine = create_engine(DATABASE_URL)
-Session = sessionmaker(bind=engine)
-session = Session()
-metadata = MetaData()
+def get_database_url():
+    # Primero intentar obtener de los argumentos
+    args = parse_arguments()
+    if args.postgres:
+        logger.info(f"Usando URL de conexión proporcionada por parámetro")
+        return args.postgres
+    
+    # Luego intentar obtener de las variables de entorno
+    db_url = os.environ.get("DATABASE_URL")
+    if db_url:
+        logger.info(f"Usando URL de conexión de variables de entorno: {db_url}")
+        return db_url
+    
+    # Si no está disponible, preguntar al usuario
+    print("Por favor, ingresa la URL de conexión PostgreSQL (ejemplo: postgresql://usuario:password@host:5432/dbname):")
+    db_url = input("> ")
+    if db_url:
+        logger.info(f"Usando URL de conexión ingresada por el usuario")
+        return db_url
+    
+    # Valor predeterminado para desarrollo local
+    logger.warning("No se proporcionó URL de conexión, usando valores predeterminados para desarrollo local")
+    return "sqlite:///./sql_app.db"
 
 # Función para verificar si la relación ya existe
-def check_relationship_exists():
+def check_relationship_exists(engine):
     try:
         inspector = inspect(engine)
         # Verificar si la tabla documentos existe
@@ -60,10 +81,10 @@ def check_relationship_exists():
         return False
 
 # Función para añadir la relación si no existe
-def add_relationship():
+def add_relationship(engine):
     try:
         # Verificar primero si la relación ya existe
-        if check_relationship_exists():
+        if check_relationship_exists(engine):
             logger.info("La relación ya existe, no es necesario hacer cambios")
             return
         
@@ -118,5 +139,27 @@ def add_relationship():
 # Ejecutar la función principal
 if __name__ == "__main__":
     logger.info("Iniciando script para reparar la relación entre usuarios y documentos")
-    add_relationship()
+    
+    # Obtener la URL de la base de datos
+    DATABASE_URL = get_database_url()
+    
+    try:
+        # Crear el motor de la base de datos
+        logger.info(f"Conectando a la base de datos: {DATABASE_URL.split('@')[1] if '@' in DATABASE_URL else DATABASE_URL}")
+        engine = create_engine(DATABASE_URL)
+        
+        # Verificar conexión
+        with engine.connect() as conn:
+            logger.info("Conexión a la base de datos establecida correctamente")
+            
+            # Listar tablas disponibles
+            result = conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"))
+            tables = [row[0] for row in result]
+            logger.info(f"Tablas disponibles en la base de datos: {tables}")
+            
+            # Añadir la relación
+            add_relationship(engine)
+    except Exception as e:
+        logger.error(f"Error al conectar a la base de datos: {e}")
+        
     logger.info("Script finalizado") 
