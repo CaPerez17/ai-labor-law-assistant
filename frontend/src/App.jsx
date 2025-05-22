@@ -13,28 +13,10 @@ import RecuperacionPassword from './components/RecuperacionPassword';
 import AdminAnalyticsDashboard from './components/AdminAnalyticsDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorScreen from './components/ErrorScreen';
-import AdminNavbar from './components/AdminNavbar';
+import AdminLayout from './layouts/AdminLayout';
 
 // Importar la configuración con URLs fijas
 import { BACKEND_URL } from './config';
-
-// Componente de layout para las rutas de administrador
-const AdminLayout = ({ user, onLogout }) => {
-    return (
-        <>
-            <AdminNavbar user={user} onLogout={onLogout} />
-            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-                <Routes>
-                    <Route index element={<Navigate to="metricas" replace />} />
-                    <Route path="metricas" element={<MetricasDashboard />} />
-                    <Route path="usuarios" element={<UsuariosDashboard />} />
-                    <Route path="analytics" element={<AdminAnalyticsDashboard />} />
-                    <Route path="*" element={<Navigate to="metricas" replace />} />
-                </Routes>
-            </main>
-        </>
-    );
-};
 
 function App() {
     const [user, setUser] = useState(null);
