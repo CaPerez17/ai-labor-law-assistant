@@ -1,20 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import LoginForm from './components/LoginForm';
 import RegistroForm from './components/RegistroForm';
 import OnboardingAssistant from './components/OnboardingAssistant';
 import DocumentoAnalyzer from './components/DocumentoAnalyzer';
 import AbogadoDashboard from './components/AbogadoDashboard';
 import MetricasDashboard from './components/MetricasDashboard';
+import UsuariosDashboard from './components/UsuariosDashboard';
 import FacturacionUsuario from './components/FacturacionUsuario';
 import ActivacionCuenta from './components/ActivacionCuenta';
 import RecuperacionPassword from './components/RecuperacionPassword';
 import AdminAnalyticsDashboard from './components/AdminAnalyticsDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorScreen from './components/ErrorScreen';
+import AdminNavbar from './components/AdminNavbar';
 
 // Importar la configuración con URLs fijas
 import { BACKEND_URL } from './config';
+
+// Componente de envoltorio para las rutas de administrador
+const AdminRoutes = ({ user, onLogout }) => {
+    return (
+        <>
+            <AdminNavbar user={user} onLogout={onLogout} />
+            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                <Routes>
+                    <Route 
+                        path="/metricas" 
+                        element={<MetricasDashboard />} 
+                    />
+                    <Route 
+                        path="/usuarios" 
+                        element={<UsuariosDashboard />} 
+                    />
+                    <Route 
+                        path="/analytics" 
+                        element={<AdminAnalyticsDashboard />} 
+                    />
+                    <Route 
+                        path="*" 
+                        element={<Navigate to="/admin/metricas" replace />} 
+                    />
+                </Routes>
+            </main>
+        </>
+    );
+};
 
 function App() {
     const [user, setUser] = useState(null);
@@ -306,7 +337,7 @@ function App() {
                         />
                         
                         <Route
-                            path="/admin/metricas"
+                            path="/admin"
                             element={
                                 <ProtectedRoute 
                                     user={user} 
@@ -319,26 +350,7 @@ function App() {
                                         />
                                     }
                                 >
-                                    <MetricasDashboard />
-                                </ProtectedRoute>
-                            }
-                        />
-                        
-                        <Route
-                            path="/admin/analytics"
-                            element={
-                                <ProtectedRoute 
-                                    user={user} 
-                                    roles={['admin']} 
-                                    fallback={
-                                        <ErrorScreen 
-                                            message="No tienes permiso para acceder a esta página. Se requiere rol de administrador." 
-                                            buttonText="Volver al inicio"
-                                            onRetry={() => window.location.href = '/'}
-                                        />
-                                    }
-                                >
-                                    <AdminAnalyticsDashboard />
+                                    <AdminRoutes user={user} onLogout={handleLogout} />
                                 </ProtectedRoute>
                             }
                         />
@@ -348,7 +360,7 @@ function App() {
                             element={
                                 user ? (
                                     <Navigate to={
-                                        user.rol === 'admin' ? '/admin/metricas' :
+                                        user.rol === 'admin' ? '/admin' :
                                         user.rol === 'abogado' ? '/abogado' :
                                         '/cliente'
                                     } />

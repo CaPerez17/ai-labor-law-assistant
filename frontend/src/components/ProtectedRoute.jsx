@@ -78,7 +78,7 @@ const ProtectedRoute = ({
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
     
-    // Si no se requiere verificación de roles, permitir acceso
+    // Si no se requiere verificación de roles o no hay roles definidos, permitir acceso
     if (!roles || roles.length === 0) {
         console.log('[ProtectedRoute] No se requiere verificación de roles, acceso permitido');
         return children;
@@ -86,6 +86,11 @@ const ProtectedRoute = ({
     
     // Normalizar los roles de entrada a minúscula para comparación
     const normalizedRoles = roles.map(r => r.toLowerCase());
+    
+    // Si el usuario tiene un rol pero no está definido, intentar corregirlo
+    if (!user.rol && user.role) {
+        user.rol = user.role.toLowerCase();
+    }
     
     // Verificar que el usuario tenga un rol válido
     if (!user.rol) {
@@ -96,12 +101,7 @@ const ProtectedRoute = ({
             return fallback;
         }
         
-        return (
-            <ErrorScreen 
-                message="Tu usuario no tiene un rol asignado. Por favor contacta al administrador." 
-                buttonText="Volver al inicio de sesión"
-            />
-        );
+        return <Navigate to="/login" state={{ from: location }} replace />;
     }
     
     // Verificar si el rol del usuario está entre los permitidos
@@ -109,16 +109,11 @@ const ProtectedRoute = ({
         console.log('[ProtectedRoute] Acceso denegado: Rol no autorizado');
         console.log(`[ProtectedRoute] Rol del usuario: ${user.rol}, Roles permitidos:`, normalizedRoles);
         
-        // Mostrar fallback si existe
-        if (fallback) {
-            return fallback;
-        }
-        
         // Redirigir al dashboard correspondiente según el rol
         switch (user.rol) {
             case 'admin':
                 console.log('[ProtectedRoute] Redirigiendo a dashboard de admin');
-                return <Navigate to="/admin/metricas" replace />;
+                return <Navigate to="/admin" replace />;
             case 'abogado':
             case 'lawyer':
                 console.log('[ProtectedRoute] Redirigiendo a dashboard de abogado');
@@ -128,25 +123,15 @@ const ProtectedRoute = ({
                 console.log('[ProtectedRoute] Redirigiendo a dashboard de cliente');
                 return <Navigate to="/cliente" replace />;
             default:
-                console.log('[ProtectedRoute] Rol desconocido, mostrando error');
-                return (
-                    <ErrorScreen 
-                        message={`No tienes permiso para acceder a esta página con el rol "${user.rol}".`}
-                        buttonText="Ir a mi página principal"
-                        onRetry={() => {
-                            // Redirigir a la página principal basada en el rol
-                            let path = '/login';
-                            if (user.rol === 'admin') path = '/admin/metricas';
-                            else if (user.rol === 'abogado') path = '/abogado';
-                            else if (user.rol === 'cliente') path = '/cliente';
-                            
-                            window.location.href = path;
-                        }}
-                    />
-                );
+                // Si tiene un rol desconocido, mostrar fallback o redirigir a login
+                if (fallback) {
+                    return fallback;
+                }
+                return <Navigate to="/login" state={{ from: location }} replace />;
         }
     }
 
+    // Si el usuario tiene el rol correcto, mostrar el contenido protegido
     console.log('[ProtectedRoute] Acceso permitido');
     return children;
 };
