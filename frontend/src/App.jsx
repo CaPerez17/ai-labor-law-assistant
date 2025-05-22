@@ -18,18 +18,18 @@ import AdminNavbar from './components/AdminNavbar';
 // Importar la configuración con URLs fijas
 import { BACKEND_URL } from './config';
 
-// Componente de envoltorio para las rutas de administrador
-const AdminRoutes = ({ user, onLogout }) => {
+// Componente de layout para las rutas de administrador
+const AdminLayout = ({ user, onLogout }) => {
     return (
         <>
             <AdminNavbar user={user} onLogout={onLogout} />
             <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 <Routes>
-                    <Route index element={<Navigate to="/admin/metricas" replace />} />
+                    <Route index element={<Navigate to="metricas" replace />} />
                     <Route path="metricas" element={<MetricasDashboard />} />
                     <Route path="usuarios" element={<UsuariosDashboard />} />
                     <Route path="analytics" element={<AdminAnalyticsDashboard />} />
-                    <Route path="*" element={<Navigate to="/admin/metricas" replace />} />
+                    <Route path="*" element={<Navigate to="metricas" replace />} />
                 </Routes>
             </main>
         </>
@@ -163,7 +163,7 @@ function App() {
     return (
         <Router>
             <div className="min-h-screen bg-gray-100">
-                {user && (
+                {user && user.rol !== 'admin' && (
                     <nav className="bg-white shadow-sm">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                             <div className="flex justify-between h-16">
@@ -204,14 +204,6 @@ function App() {
                                                 Dashboard
                                             </button>
                                         )}
-                                        {user.rol === 'admin' && (
-                                            <button
-                                                onClick={() => window.location.href = '/admin'}
-                                                className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700"
-                                            >
-                                                Panel de Admin
-                                            </button>
-                                        )}
                                     </div>
                                 </div>
                                 <div className="flex items-center">
@@ -249,11 +241,7 @@ function App() {
                                     user={user} 
                                     roles={['cliente']} 
                                     fallback={
-                                        <ErrorScreen 
-                                            message="No tienes permiso para acceder a esta página. Se requiere rol de cliente." 
-                                            buttonText="Volver al inicio"
-                                            onRetry={() => window.location.href = '/'}
-                                        />
+                                        <Navigate to="/login" replace />
                                     }
                                 >
                                     <OnboardingAssistant />
@@ -268,11 +256,7 @@ function App() {
                                     user={user} 
                                     roles={['cliente']} 
                                     fallback={
-                                        <ErrorScreen 
-                                            message="No tienes permiso para acceder a esta página. Se requiere rol de cliente." 
-                                            buttonText="Volver al inicio"
-                                            onRetry={() => window.location.href = '/'}
-                                        />
+                                        <Navigate to="/login" replace />
                                     }
                                 >
                                     <DocumentoAnalyzer />
@@ -287,11 +271,7 @@ function App() {
                                     user={user} 
                                     roles={['cliente']} 
                                     fallback={
-                                        <ErrorScreen 
-                                            message="No tienes permiso para acceder a esta página. Se requiere rol de cliente." 
-                                            buttonText="Volver al inicio"
-                                            onRetry={() => window.location.href = '/'}
-                                        />
+                                        <Navigate to="/login" replace />
                                     }
                                 >
                                     <FacturacionUsuario />
@@ -306,11 +286,7 @@ function App() {
                                     user={user} 
                                     roles={['abogado', 'lawyer']} 
                                     fallback={
-                                        <ErrorScreen 
-                                            message="No tienes permiso para acceder a esta página. Se requiere rol de abogado." 
-                                            buttonText="Volver al inicio"
-                                            onRetry={() => window.location.href = '/'}
-                                        />
+                                        <Navigate to="/login" replace />
                                     }
                                 >
                                     <AbogadoDashboard />
@@ -325,14 +301,10 @@ function App() {
                                     user={user} 
                                     roles={['admin']} 
                                     fallback={
-                                        <ErrorScreen 
-                                            message="No tienes permiso para acceder a esta página. Se requiere rol de administrador." 
-                                            buttonText="Volver al inicio"
-                                            onRetry={() => window.location.href = '/'}
-                                        />
+                                        <Navigate to="/login" replace />
                                     }
                                 >
-                                    <AdminRoutes user={user} onLogout={handleLogout} />
+                                    <AdminLayout user={user} onLogout={handleLogout} />
                                 </ProtectedRoute>
                             }
                         />
@@ -356,11 +328,7 @@ function App() {
                         <Route
                             path="*"
                             element={
-                                <ErrorScreen 
-                                    message="La página que buscas no existe."
-                                    buttonText="Volver al inicio"
-                                    onRetry={() => window.location.href = '/'}
-                                />
+                                <Navigate to="/" />
                             }
                         />
                     </Routes>
