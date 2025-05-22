@@ -89,6 +89,13 @@ function App() {
         
         setUser(userData);
         setError(null); // Limpiar errores previos
+        
+        // Actualizar la sesión si no era una sesión restaurada
+        if (!userData._restored) {
+            console.log('[App] Actualizando sesión en memoria');
+            return Promise.resolve(); // Importante: retornar una promesa para async/await
+        }
+        return Promise.resolve();
     };
 
     const handleLogout = () => {

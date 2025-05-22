@@ -54,6 +54,10 @@ const ProtectedRoute = ({
                 console.error('[ProtectedRoute] Usuario sin rol definido');
             }
             
+            // Marcar esta sesión como restaurada del localStorage para diferenciarlo
+            // de las sesiones que vienen de login directo
+            parsedUser._restored = true;
+            
             return parsedUser;
         } catch (e) {
             console.error('[ProtectedRoute] Error al parsear datos de usuario:', e);
@@ -73,6 +77,19 @@ const ProtectedRoute = ({
         if (fallback) {
             return fallback;
         }
+        
+        // Verificar si estamos justo después de login para evitar redireccionamiento circular
+        const lastAuthAttempt = sessionStorage.getItem('lastAuthAttempt');
+        const now = new Date().getTime();
+        
+        // Si hubo un intento de autenticación hace menos de 2 segundos, mostrar error en lugar de redirigir
+        if (lastAuthAttempt && (now - parseInt(lastAuthAttempt)) < 2000) {
+            console.warn('[ProtectedRoute] Posible redirección circular detectada');
+            return <ErrorScreen message="Error de autenticación. Intentando restaurar sesión..." />;
+        }
+        
+        // Registrar este intento de autenticación
+        sessionStorage.setItem('lastAuthAttempt', now.toString());
         
         // Redirigir al login si no hay usuario o fallback
         return <Navigate to="/login" state={{ from: location }} replace />;

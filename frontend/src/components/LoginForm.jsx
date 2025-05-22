@@ -23,6 +23,7 @@ const LoginForm = (props) => {
         setLoading(true);
         setError('');
         try {
+            // 1. Realizar la petición de login
             const { token, user } = await loginUser(email, password);
             console.log('✅ Login exitoso:', { token, user });
             
@@ -30,21 +31,34 @@ const LoginForm = (props) => {
                 throw new Error('No se recibieron datos del usuario');
             }
             
-            // Guardar el token en localStorage
+            // 2. Normalizar el formato del rol si es necesario
+            if (!user.rol && user.role) {
+                user.rol = user.role;
+            }
+            
+            // 3. Guardar datos en localStorage
             localStorage.setItem('token', token);
-            // Guardar datos del usuario
             localStorage.setItem('user', JSON.stringify(user));
             
-            // Redirigir según el rol
+            // 4. Determinar la ruta de redirección basada en el rol
+            let redirectPath = '/dashboard'; // Ruta predeterminada
+            
             if (user.rol === 'admin') {
-                navigate('/admin/metricas');
+                redirectPath = '/admin/metricas';
             } else if (user.rol === 'abogado') {
-                navigate('/abogado');
+                redirectPath = '/abogado';
             } else if (user.rol === 'cliente') {
-                navigate('/cliente');
-            } else {
-                navigate('/dashboard');
+                redirectPath = '/cliente';
             }
+            
+            // 5. Notificar al contexto de autenticación (si existe) antes de navegar
+            if (props.onLoginSuccess) {
+                await props.onLoginSuccess(user);
+            }
+            
+            // 6. Navegar a la ruta correspondiente
+            console.log(`🔀 Redirigiendo a: ${redirectPath}`);
+            navigate(redirectPath);
         } catch (err) {
             console.error('❌ Error en login:', err);
             setError(err.message || 'Error al iniciar sesión');
