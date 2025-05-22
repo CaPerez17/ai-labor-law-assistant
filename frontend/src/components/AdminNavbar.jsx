@@ -4,6 +4,13 @@ import { useNavigate } from 'react-router-dom';
 const AdminNavbar = ({ user, onLogout }) => {
     const navigate = useNavigate();
 
+    const handleLogout = () => {
+        // Llamar al callback de logout proporcionado por el componente padre
+        onLogout();
+        // Navegar explícitamente a la página de login
+        navigate('/login');
+    };
+
     return (
         <nav className="bg-white shadow-sm">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -40,7 +47,7 @@ const AdminNavbar = ({ user, onLogout }) => {
                             {user.nombre || user.name || user.email}
                         </span>
                         <button
-                            onClick={onLogout}
+                            onClick={handleLogout}
                             className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
                         >
                             Cerrar Sesión

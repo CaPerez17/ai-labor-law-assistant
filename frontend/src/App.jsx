@@ -31,7 +31,6 @@ const AdminRoutes = ({ user, onLogout }) => {
                     <Route path="analytics" element={<AdminAnalyticsDashboard />} />
                     <Route path="*" element={<Navigate to="/admin/metricas" replace />} />
                 </Routes>
-                <Outlet />
             </main>
         </>
     );
@@ -116,6 +115,7 @@ function App() {
         localStorage.removeItem('user');
         setUser(null);
         setError(null);
+        // No necesitamos redireccionar aquí, ya que AdminNavbar se encargará de eso
     };
 
     const isAuthenticated = () => {
@@ -205,20 +205,12 @@ function App() {
                                             </button>
                                         )}
                                         {user.rol === 'admin' && (
-                                            <>
-                                                <button
-                                                    onClick={() => window.location.href = '/admin/metricas'}
-                                                    className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700"
-                                                >
-                                                    Métricas
-                                                </button>
-                                                <button
-                                                    onClick={() => window.location.href = '/admin/usuarios'}
-                                                    className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700"
-                                                >
-                                                    Usuarios
-                                                </button>
-                                            </>
+                                            <button
+                                                onClick={() => window.location.href = '/admin'}
+                                                className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700"
+                                            >
+                                                Panel de Admin
+                                            </button>
                                         )}
                                     </div>
                                 </div>
