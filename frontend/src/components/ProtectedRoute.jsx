@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import ErrorScreen from './ErrorScreen';
 
 /**
@@ -81,7 +81,7 @@ const ProtectedRoute = ({
     // Si no se requiere verificación de roles o no hay roles definidos, permitir acceso
     if (!roles || roles.length === 0) {
         console.log('[ProtectedRoute] No se requiere verificación de roles, acceso permitido');
-        return children;
+        return children || <Outlet />;
     }
     
     // Normalizar los roles de entrada a minúscula para comparación
@@ -133,7 +133,7 @@ const ProtectedRoute = ({
 
     // Si el usuario tiene el rol correcto, mostrar el contenido protegido
     console.log('[ProtectedRoute] Acceso permitido');
-    return children;
+    return children || <Outlet />;
 };
 
 export default ProtectedRoute; 

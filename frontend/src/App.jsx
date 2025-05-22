@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom';
 import LoginForm from './components/LoginForm';
 import RegistroForm from './components/RegistroForm';
 import OnboardingAssistant from './components/OnboardingAssistant';
@@ -25,23 +25,13 @@ const AdminRoutes = ({ user, onLogout }) => {
             <AdminNavbar user={user} onLogout={onLogout} />
             <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 <Routes>
-                    <Route 
-                        path="/metricas" 
-                        element={<MetricasDashboard />} 
-                    />
-                    <Route 
-                        path="/usuarios" 
-                        element={<UsuariosDashboard />} 
-                    />
-                    <Route 
-                        path="/analytics" 
-                        element={<AdminAnalyticsDashboard />} 
-                    />
-                    <Route 
-                        path="*" 
-                        element={<Navigate to="/admin/metricas" replace />} 
-                    />
+                    <Route index element={<Navigate to="/admin/metricas" replace />} />
+                    <Route path="metricas" element={<MetricasDashboard />} />
+                    <Route path="usuarios" element={<UsuariosDashboard />} />
+                    <Route path="analytics" element={<AdminAnalyticsDashboard />} />
+                    <Route path="*" element={<Navigate to="/admin/metricas" replace />} />
                 </Routes>
+                <Outlet />
             </main>
         </>
     );
@@ -337,7 +327,7 @@ function App() {
                         />
                         
                         <Route
-                            path="/admin"
+                            path="/admin/*"
                             element={
                                 <ProtectedRoute 
                                     user={user} 
