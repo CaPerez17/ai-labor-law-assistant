@@ -113,7 +113,7 @@ const ProtectedRoute = ({
         switch (user.rol) {
             case 'admin':
                 console.log('[ProtectedRoute] Redirigiendo a dashboard de admin');
-                return <Navigate to="/admin" replace />;
+                return <Navigate to="/admin/metricas" replace />;
             case 'abogado':
             case 'lawyer':
                 console.log('[ProtectedRoute] Redirigiendo a dashboard de abogado');

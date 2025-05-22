@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import AdminNavbar from '../components/AdminNavbar';
 import MetricasDashboard from '../components/MetricasDashboard';
 import UsuariosDashboard from '../components/UsuariosDashboard';
@@ -15,7 +15,7 @@ const AdminLayout = ({ user, onLogout }) => {
             <AdminNavbar user={user} onLogout={onLogout} />
             <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 <Routes>
-                    <Route index element={<MetricasDashboard />} />
+                    <Route index element={<Navigate to="metricas" replace />} />
                     <Route path="metricas" element={<MetricasDashboard />} />
                     <Route path="usuarios" element={<UsuariosDashboard />} />
                     <Route path="analytics" element={<AdminAnalyticsDashboard />} />

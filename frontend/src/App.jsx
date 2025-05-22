@@ -296,7 +296,7 @@ function App() {
                             element={
                                 user ? (
                                     <Navigate to={
-                                        user.rol === 'admin' ? '/admin' :
+                                        user.rol === 'admin' ? '/admin/metricas' :
                                         user.rol === 'abogado' ? '/abogado' :
                                         '/cliente'
                                     } />

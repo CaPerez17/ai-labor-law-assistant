@@ -37,7 +37,7 @@ const LoginForm = (props) => {
             
             // Redirigir según el rol
             if (user.rol === 'admin') {
-                navigate('/admin');
+                navigate('/admin/metricas');
             } else if (user.rol === 'abogado') {
                 navigate('/abogado');
             } else if (user.rol === 'cliente') {

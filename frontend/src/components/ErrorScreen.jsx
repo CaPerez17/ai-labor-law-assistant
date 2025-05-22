@@ -30,7 +30,7 @@ const ErrorScreen = ({
                     const user = JSON.parse(userStr);
                     // Redirigir según el rol
                     if (user.rol === 'admin' || user.role === 'admin') {
-                        navigate('/admin');
+                        navigate('/admin/metricas');
                     } else if (user.rol === 'abogado' || user.role === 'abogado') {
                         navigate('/abogado');
                     } else if (user.rol === 'cliente' || user.role === 'cliente') {
@@ -39,8 +39,8 @@ const ErrorScreen = ({
                         navigate('/');
                     }
                 } catch (e) {
-                    // Si hay error al parsear, ir a la raíz
-                    navigate('/');
+                    // Si hay error al parsear, ir a login
+                    navigate('/login');
                 }
             } else {
                 // Si no hay sesión, ir a login
