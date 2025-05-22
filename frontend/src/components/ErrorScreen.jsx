@@ -21,8 +21,31 @@ const ErrorScreen = ({
         if (onRetry) {
             onRetry();
         } else {
-            // Si no hay función de retry, navegar a la raíz
-            navigate('/');
+            // Verificar si hay un usuario autenticado
+            const userStr = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            
+            if (userStr && token) {
+                try {
+                    const user = JSON.parse(userStr);
+                    // Redirigir según el rol
+                    if (user.rol === 'admin' || user.role === 'admin') {
+                        navigate('/admin');
+                    } else if (user.rol === 'abogado' || user.role === 'abogado') {
+                        navigate('/abogado');
+                    } else if (user.rol === 'cliente' || user.role === 'cliente') {
+                        navigate('/cliente');
+                    } else {
+                        navigate('/');
+                    }
+                } catch (e) {
+                    // Si hay error al parsear, ir a la raíz
+                    navigate('/');
+                }
+            } else {
+                // Si no hay sesión, ir a login
+                navigate('/login');
+            }
         }
     };
     
