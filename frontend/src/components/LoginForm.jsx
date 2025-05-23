@@ -39,8 +39,16 @@ const LoginForm = (props) => {
             // 3. Guardar datos en localStorage
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
+            console.log('💾 Datos guardados en localStorage');
             
-            // 4. Determinar la ruta de redirección basada en el rol
+            // 4. Notificar al contexto de autenticación ANTES de navegar
+            if (props.onLoginSuccess) {
+                console.log('🔄 Notificando al contexto de autenticación');
+                await props.onLoginSuccess(user, token);
+                console.log('✅ Contexto actualizado correctamente');
+            }
+            
+            // 5. Determinar la ruta de redirección basada en el rol y navegar con replace:true
             let redirectPath = '/dashboard'; // Ruta predeterminada
             
             if (user.rol === 'admin') {
@@ -51,14 +59,9 @@ const LoginForm = (props) => {
                 redirectPath = '/cliente';
             }
             
-            // 5. Notificar al contexto de autenticación (si existe) antes de navegar
-            if (props.onLoginSuccess) {
-                await props.onLoginSuccess(user);
-            }
-            
-            // 6. Navegar a la ruta correspondiente
+            // 6. Navegar con replace para evitar volver atrás a la pantalla de login
             console.log(`🔀 Redirigiendo a: ${redirectPath}`);
-            navigate(redirectPath);
+            navigate(redirectPath, { replace: true });
         } catch (err) {
             console.error('❌ Error en login:', err);
             setError(err.message || 'Error al iniciar sesión');

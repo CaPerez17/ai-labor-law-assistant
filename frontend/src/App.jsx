@@ -74,8 +74,13 @@ function App() {
         setLoading(false);
     }, []);
 
-    const handleLogin = (userData) => {
+    const handleLogin = (userData, token) => {
         console.log('[App] Usuario ha iniciado sesión:', userData);
+        
+        if (!userData) {
+            console.error('[App] Error: userData es nulo o indefinido');
+            return Promise.reject(new Error('Datos de usuario no válidos'));
+        }
         
         // Normalizar el rol si es necesario
         if (!userData.rol && userData.role) {
@@ -87,15 +92,27 @@ function App() {
             userData.rol = userData.rol.toLowerCase();
         }
         
-        setUser(userData);
+        // Actualizar el estado para forzar re-render
+        console.log('[App] Actualizando estado de autenticación en App');
+        setUser({...userData});
         setError(null); // Limpiar errores previos
         
-        // Actualizar la sesión si no era una sesión restaurada
-        if (!userData._restored) {
-            console.log('[App] Actualizando sesión en memoria');
-            return Promise.resolve(); // Importante: retornar una promesa para async/await
+        // Asegurar que los datos estén persistidos
+        if (token && !localStorage.getItem('token')) {
+            localStorage.setItem('token', token);
         }
-        return Promise.resolve();
+        
+        if (!localStorage.getItem('user')) {
+            localStorage.setItem('user', JSON.stringify(userData));
+        }
+        
+        // Simular un pequeño retraso para asegurar que el estado se actualice
+        return new Promise(resolve => {
+            setTimeout(() => {
+                console.log('[App] Estado de autenticación actualizado');
+                resolve(userData);
+            }, 50);
+        });
     };
 
     const handleLogout = () => {

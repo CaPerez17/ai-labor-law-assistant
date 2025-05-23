@@ -20,32 +20,41 @@ const ErrorScreen = ({
     const handleClick = () => {
         if (onRetry) {
             onRetry();
-        } else {
-            // Verificar si hay un usuario autenticado
-            const userStr = localStorage.getItem('user');
-            const token = localStorage.getItem('token');
-            
-            if (userStr && token) {
-                try {
-                    const user = JSON.parse(userStr);
-                    // Redirigir según el rol
-                    if (user.rol === 'admin' || user.role === 'admin') {
-                        navigate('/admin/metricas');
-                    } else if (user.rol === 'abogado' || user.role === 'abogado') {
-                        navigate('/abogado');
-                    } else if (user.rol === 'cliente' || user.role === 'cliente') {
-                        navigate('/cliente');
-                    } else {
-                        navigate('/');
-                    }
-                } catch (e) {
-                    // Si hay error al parsear, ir a login
-                    navigate('/login');
+            return;
+        }
+        
+        // Verificar si hay un usuario autenticado
+        const userStr = localStorage.getItem('user');
+        const token = localStorage.getItem('token');
+        
+        if (userStr && token) {
+            try {
+                const user = JSON.parse(userStr);
+                console.log('[ErrorScreen] Usuario autenticado detectado:', user.email);
+                
+                // Normalizar el formato del rol si es necesario
+                const rol = user.rol || user.role || '';
+                
+                // Redirigir según el rol, usando rutas absolutas para evitar problemas de rutas relativas
+                if (rol.toLowerCase() === 'admin') {
+                    console.log('[ErrorScreen] Redirigiendo a panel admin');
+                    navigate('/admin/metricas', { replace: true });
+                } else if (rol.toLowerCase() === 'abogado') {
+                    navigate('/abogado', { replace: true });
+                } else if (rol.toLowerCase() === 'cliente') {
+                    navigate('/cliente', { replace: true });
+                } else {
+                    navigate('/', { replace: true });
                 }
-            } else {
-                // Si no hay sesión, ir a login
-                navigate('/login');
+            } catch (e) {
+                console.error('[ErrorScreen] Error al parsear datos de usuario:', e);
+                // Si hay error al parsear, ir a login
+                navigate('/login', { replace: true });
             }
+        } else {
+            // Si no hay sesión válida, ir a login
+            console.log('[ErrorScreen] No hay sesión válida, redirigiendo a login');
+            navigate('/login', { replace: true });
         }
     };
     

@@ -6,9 +6,17 @@ const AdminNavbar = ({ user, onLogout }) => {
 
     const handleLogout = () => {
         // Llamar al callback de logout proporcionado por el componente padre
-        onLogout();
+        if (onLogout) {
+            onLogout();
+        }
         // Navegar explícitamente a la página de login
-        navigate('/login');
+        navigate('/login', { replace: true });
+    };
+    
+    // Función para navegar usando rutas relativas
+    const navigateTo = (route) => {
+        console.log(`[AdminNavbar] Navegando a ruta relativa: ${route}`);
+        navigate(route);
     };
 
     return (
@@ -23,35 +31,39 @@ const AdminNavbar = ({ user, onLogout }) => {
                         </div>
                         <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                             <button
-                                onClick={() => navigate('metricas')}
-                                className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                                onClick={() => navigateTo('metricas')}
+                                className="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                             >
                                 Métricas
                             </button>
                             <button
-                                onClick={() => navigate('usuarios')}
-                                className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                                onClick={() => navigateTo('usuarios')}
+                                className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                             >
                                 Usuarios
                             </button>
                             <button
-                                onClick={() => navigate('analytics')}
-                                className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                                onClick={() => navigateTo('analytics')}
+                                className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                             >
                                 Analytics
                             </button>
                         </div>
                     </div>
-                    <div className="flex items-center">
-                        <span className="text-sm text-gray-500 mr-4">
-                            {user.nombre || user.name || user.email}
-                        </span>
-                        <button
-                            onClick={handleLogout}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-                        >
-                            Cerrar Sesión
-                        </button>
+                    <div className="hidden sm:ml-6 sm:flex sm:items-center">
+                        <div className="ml-3 relative">
+                            <div className="flex items-center">
+                                <span className="text-sm text-gray-700 mr-4">
+                                    {user ? `Hola, ${user.nombre || user.email}` : 'Admin'}
+                                </span>
+                                <button
+                                    onClick={handleLogout}
+                                    className="bg-red-600 text-white px-3 py-1 rounded-md text-sm hover:bg-red-700"
+                                >
+                                    Cerrar sesión
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

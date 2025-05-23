@@ -91,7 +91,15 @@ const ProtectedRoute = ({
         // Registrar este intento de autenticación
         sessionStorage.setItem('lastAuthAttempt', now.toString());
         
+        // Verificar si hay un token en el localStorage pero no se pudo parsear el usuario
+        const token = localStorage.getItem('token');
+        if (token) {
+            console.warn('[ProtectedRoute] Hay token pero no se pudo recuperar el usuario');
+            return <ErrorScreen message="Error al cargar datos de usuario. Por favor intente de nuevo." />;
+        }
+        
         // Redirigir al login si no hay usuario o fallback
+        console.log('[ProtectedRoute] Redirigiendo a login');
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
     
