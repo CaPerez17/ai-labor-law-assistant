@@ -74,4 +74,7 @@ export const loginUser = async (email, password) => {
 export default apiClient;
 
 // Función para obtener analytics/estadísticas
-export const getAnalytics = () => apiClient.get('/metricas/estadisticas'); 
+export const getAnalytics = () => apiClient.get('/metricas/estadisticas');
+
+// Usuarios (si se usa en UsuariosDashboard)
+export const getUsers = () => apiClient.get('/usuarios'); 
