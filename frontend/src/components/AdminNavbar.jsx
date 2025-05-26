@@ -31,7 +31,7 @@ const AdminNavbar = ({ user, onLogout }) => {
                         </div>
                         <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                             <NavLink
-                                to="metricas"
+                                to="/admin/metricas"
                                 className={({ isActive }) =>
                                     isActive
                                         ? "border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
@@ -41,7 +41,7 @@ const AdminNavbar = ({ user, onLogout }) => {
                                 Métricas
                             </NavLink>
                             <NavLink
-                                to="usuarios"
+                                to="/admin/usuarios"
                                 className={({ isActive }) =>
                                     isActive
                                         ? "border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
@@ -51,7 +51,7 @@ const AdminNavbar = ({ user, onLogout }) => {
                                 Usuarios
                             </NavLink>
                             <NavLink
-                                to="analytics"
+                                to="/admin/analytics"
                                 className={({ isActive }) =>
                                     isActive
                                         ? "border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
