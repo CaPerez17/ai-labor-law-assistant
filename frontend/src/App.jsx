@@ -244,11 +244,8 @@ function App() {
                             path="/cliente"
                             element={
                                 <ProtectedRoute 
-                                    user={user} 
-                                    roles={['cliente']} 
-                                    fallback={
-                                        <Navigate to="/login" replace />
-                                    }
+                                    requiredRole="cliente"
+                                    fallback={<Navigate to="/login" replace />}
                                 >
                                     <OnboardingAssistant />
                                 </ProtectedRoute>
@@ -259,11 +256,8 @@ function App() {
                             path="/documento"
                             element={
                                 <ProtectedRoute 
-                                    user={user} 
-                                    roles={['cliente']} 
-                                    fallback={
-                                        <Navigate to="/login" replace />
-                                    }
+                                    requiredRole="cliente"
+                                    fallback={<Navigate to="/login" replace />}
                                 >
                                     <DocumentoAnalyzer />
                                 </ProtectedRoute>
@@ -274,11 +268,8 @@ function App() {
                             path="/facturas"
                             element={
                                 <ProtectedRoute 
-                                    user={user} 
-                                    roles={['cliente']} 
-                                    fallback={
-                                        <Navigate to="/login" replace />
-                                    }
+                                    requiredRole="cliente"
+                                    fallback={<Navigate to="/login" replace />}
                                 >
                                     <FacturacionUsuario />
                                 </ProtectedRoute>
@@ -289,11 +280,8 @@ function App() {
                             path="/abogado"
                             element={
                                 <ProtectedRoute 
-                                    user={user} 
-                                    roles={['abogado', 'lawyer']} 
-                                    fallback={
-                                        <Navigate to="/login" replace />
-                                    }
+                                    requiredRole="abogado"
+                                    fallback={<Navigate to="/login" replace />}
                                 >
                                     <AbogadoDashboard />
                                 </ProtectedRoute>
@@ -304,11 +292,8 @@ function App() {
                             path="/admin/*"
                             element={
                                 <ProtectedRoute 
-                                    user={user} 
-                                    roles={['admin']} 
-                                    fallback={
-                                        <Navigate to="/login" replace />
-                                    }
+                                    requiredRole="admin"
+                                    fallback={<Navigate to="/login" replace />}
                                 >
                                     <AdminLayout user={user} onLogout={handleLogout} />
                                 </ProtectedRoute>
