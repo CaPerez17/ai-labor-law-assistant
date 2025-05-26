@@ -71,4 +71,7 @@ export const loginUser = async (email, password) => {
 };
 
 // Exportar el cliente API para su uso en toda la aplicación
-export default apiClient; 
+export default apiClient;
+
+// Función para obtener analytics/estadísticas
+export const getAnalytics = () => apiClient.get('/metricas/estadisticas'); 
