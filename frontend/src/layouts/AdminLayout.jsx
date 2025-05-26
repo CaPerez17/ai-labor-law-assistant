@@ -19,7 +19,7 @@ const AdminLayout = ({ user, onLogout }) => {
             <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 <Routes>
                     {/* Ruta index redirige automáticamente a métricas */}
-                    <Route index element={<Navigate to="metricas" replace />} />
+                    <Route index element={<Navigate to="/admin/metricas" replace />} />
                     
                     {/* Rutas específicas del panel admin */}
                     <Route path="metricas" element={<MetricasDashboard />} />
@@ -27,7 +27,7 @@ const AdminLayout = ({ user, onLogout }) => {
                     <Route path="analytics" element={<AdminAnalyticsDashboard />} />
                     
                     {/* Cualquier otra ruta dentro de /admin redirige a métricas */}
-                    <Route path="*" element={<Navigate to="metricas" replace />} />
+                    <Route path="*" element={<Navigate to="/admin/metricas" replace />} />
                 </Routes>
             </main>
         </div>
