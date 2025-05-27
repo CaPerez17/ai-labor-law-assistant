@@ -135,143 +135,33 @@ async def login(
     """
     try:
         # Log de la solicitud entrante
-        logger.info(f"🐛 [Auth] Received login request: {request.method} {request.url}")
-        logger.info(f"Headers: {dict(request.headers)}")
+        logger.info(f"🔑 [Auth] Recibiendo solicitud de login")
         
-        # Log detallado del form-data
-        logger.info(f"🐛 [Auth] Raw form data → {form_data.__dict__}")
-        print(f"🐛 [Auth] Raw form data → {form_data.__dict__}")
-        
-        # Intentar leer el cuerpo de la solicitud como JSON
-        body = {}
-        try:
-            body_bytes = await request.body()
-            if body_bytes:
-                content_type = request.headers.get("content-type", "").lower()
-                if "application/json" in content_type:
-                    body = json.loads(body_bytes)
-                    logger.info(f"Body recibido (JSON): {body}")
-                elif "form" in content_type or "multipart" in content_type:
-                    # Para formularios, ya tenemos form_data
-                    logger.info("Body recibido en formato form-data")
-                else:
-                    logger.warning(f"Tipo de contenido no esperado: {content_type}")
-        except Exception as e:
-            logger.warning(f"Error al leer o parsear el cuerpo de la solicitud: {str(e)}")
-            # No es crítico, continuamos con form_data
-        
-        # Obtener email y password (permitir tanto username como email)
-        email = form_data.username  # OAuth2PasswordRequestForm usa username
+        # Obtener email y password
+        email = form_data.username
         password = form_data.password
         
-        logger.info(f"🔑 [Auth] Intentando login con email: {email}")
-        
-        # Si tenemos body JSON, intentar obtener email y password de ahí
-        if body:
-            if 'email' in body:
-                email = body['email']
-                logger.info(f"Usando email del body JSON: {email}")
-            elif 'username' in body:
-                email = body['username']
-                logger.info(f"Usando username del body JSON: {email}")
-                
-            if 'password' in body:
-                password = body['password']
-                logger.info("Usando password del body JSON (no logueado por seguridad)")
-        
-        # Verificar si estamos en modo demo
-        demo_mode = os.environ.get("LEGALASSISTA_DEMO", "").lower() == "true"
-        logger.info(f"Modo demo activado: {demo_mode}")
-        
-        # En modo demo, intentar modificar el nombre de usuario para usar la versión demo
-        if demo_mode and not email.endswith("_demo@legalassista.com"):
-            # Extraer el rol de la dirección de correo si es posible
-            if "@" in email:
-                username_parts = email.split("@")[0]
-                # Si el usuario ya tiene un formato como "admin@", "cliente@", etc.
-                if any(role in username_parts.lower() for role in ["admin", "abogado", "cliente"]):
-                    for role in ["admin", "abogado", "cliente"]:
-                        if role in username_parts.lower():
-                            demo_username = f"{role}_demo@legalassista.com"
-                            break
-                else:
-                    # Si no se puede determinar el rol, usar cliente por defecto
-                    demo_username = "cliente_demo@legalassista.com"
-            else:
-                # Si no tiene formato de correo, usar cliente demo
-                demo_username = "cliente_demo@legalassista.com"
-                
-            logger.info(f"Modo demo activado. Usuario original: {email}, Usuario demo: {demo_username}")
-            email = demo_username
-            password = "demo123"  # Contraseña estándar para usuarios demo
+        logger.info(f"🔑 [Auth] Intentando autenticar usuario: {email}")
         
         # Buscar usuario por email
-        try:
-            # Loguear la consulta SQL que se va a ejecutar
-            sql_query = str(db.query(Usuario).filter(Usuario.email == email).statement.compile(
-                compile_kwargs={"literal_binds": True}
-            ))
-            logger.info(f"🔍 [Auth] SQL query: {sql_query}")
-            
-            # Intentar primero obtener el Usuario como objeto completo para depurar
-            usuario = db.query(Usuario).filter(Usuario.email == email).first()
-            
-            # Verificar modelo importado y sus atributos
-            logger.info(f"🔍 [Auth] Clase Usuario importada: {Usuario}")
-            logger.info(f"🔍 [Auth] Atributos de la clase Usuario: {dir(Usuario)}")
-            
-            # Log del modelo de usuario encontrado
-            if usuario:
-                logger.info(f"✅ [Auth] Usuario encontrado: {email}, rol: {usuario.rol.value}")
-                logger.info(f"🔍 [Auth] Tipo del objeto usuario: {type(usuario)}")
-                logger.info(f"🔍 [Auth] Atributos del objeto usuario: {dir(usuario)}")
-                
-                # Log de las relaciones definidas en el modelo
-                for attr_name in ['documentos', 'casos', 'feedback', 'mensajes_enviados']:
-                    try:
-                        attr = getattr(type(usuario), attr_name, None)
-                        logger.info(f"🔍 [Auth] Relación '{attr_name}' definida: {attr is not None}")
-                        logger.info(f"🔍 [Auth] Tipo de relación '{attr_name}': {type(attr).__name__}")
-                    except Exception as e:
-                        logger.error(f"❌ [Auth] Error al acceder a la relación '{attr_name}': {str(e)}")
-                
-                # Verificar si el modelo tiene la relación documentos
-                has_documentos = hasattr(usuario, 'documentos')
-                logger.info(f"🔍 [Auth] Usuario tiene atributo documentos: {has_documentos}")
-                
-                # Intentar acceder a documentos (con manejo de excepciones)
-                try:
-                    if has_documentos:
-                        docs_count = len(usuario.documentos) if usuario.documentos else 0
-                        logger.info(f"🔍 [Auth] Usuario tiene {docs_count} documentos asociados")
-                except Exception as e:
-                    logger.error(f"❌ [Auth] Error al acceder a usuario.documentos: {str(e)}")
-            else:
-                logger.error(f"❌ [Auth] Usuario no encontrado: {email}")
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Correo no registrado en LegalAssista"
-                )
-            
-        except Exception as db_error:
-            logger.error(f"❌ [Auth] Error en la consulta de la base de datos: {str(db_error)}")
-            logger.error(f"Detalles de la excepción: {sys.exc_info()}")
-            import traceback
-            traceback.print_exc()
+        usuario = db.query(Usuario).filter(Usuario.email == email).first()
+        
+        if not usuario:
+            logger.error(f"❌ [Auth] Usuario no encontrado: {email}")
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error al procesar la solicitud: {str(db_error)}"
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciales inválidas"
             )
         
         # Verificar contraseña
         password_valid = verify_password(password, usuario.password_hash)
-        logger.info(f"🔑 [Auth] Contraseña válida: {password_valid}")
+        logger.info(f"🔑 [Auth] Validación de contraseña: {'✅' if password_valid else '❌'}")
         
         if not password_valid:
             logger.error(f"❌ [Auth] Contraseña incorrecta para usuario: {email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Contraseña incorrecta"
+                detail="Credenciales inválidas"
             )
         
         # Verificar si la cuenta está activa
@@ -279,59 +169,41 @@ async def login(
             logger.error(f"❌ [Auth] Cuenta no activada: {email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Cuenta no activada. Por favor, revisa tu correo electrónico para activarla."
+                detail="Cuenta no activada. Por favor, revisa tu correo electrónico."
             )
         
-        # Crear token con el ID del usuario en el campo 'sub'
+        # Crear token con el ID del usuario
         access_token = create_access_token(
             data={
-                "sub": usuario.id, 
-                "email": usuario.email, 
-                "rol": usuario.rol.value,
-                "demo": demo_mode
+                "sub": str(usuario.id),
+                "email": usuario.email,
+                "rol": usuario.rol.value
             }
         )
         
-        logger.info(f"✅ [Auth] Login successful for {email}")
+        logger.info(f"✅ [Auth] Login exitoso para {email}")
         
         # Construir objeto UserData para respuesta
         user_data = UserData(
             id=usuario.id,
             email=usuario.email,
             nombre=usuario.nombre,
-            role=usuario.rol.value  # 'role' en lugar de 'rol' para compatibilidad con frontend
+            role=usuario.rol.value
         )
         
-        # Log de la respuesta que se enviará
-        logger.info(f"📦 [Auth] Respuesta de login para {email}: token generado y datos de usuario incluidos")
-        
-        # Construir respuesta completa
-        response = Token(
-            access_token=access_token, 
+        return Token(
+            access_token=access_token,
             token_type="bearer",
             user=user_data
         )
         
-        # Log de validación final
-        logger.info(f"🔍 [Auth] Validación de respuesta login:")
-        logger.info(f"- access_token incluido: {bool(response.access_token)}")
-        logger.info(f"- user incluido: {bool(response.user)}")
-        if response.user:
-            logger.info(f"- user.id: {response.user.id}")
-            logger.info(f"- user.email: {response.user.email}")
-            logger.info(f"- user.role: {response.user.role}")
-        
-        return response
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ [Auth] Error de autenticación: {str(e)}", exc_info=True)
-        import traceback
-        traceback_str = ''.join(traceback.format_tb(e.__traceback__))
-        logger.error(f"Stack trace completo:\n{traceback_str}")
+        logger.error(f"❌ [Auth] Error interno: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error interno al procesar login: {str(e)}"
+            detail="Error interno del servidor"
         )
 
 @router.post("/activar/{token}")

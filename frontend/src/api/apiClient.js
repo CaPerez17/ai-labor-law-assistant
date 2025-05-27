@@ -58,16 +58,40 @@ export const loginUser = async (email, password) => {
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
     .join('&');
 
-  console.log('[API] URL login:', `${BACKEND_URL}${API_PREFIX}${endpoints.auth.login}`);
+  try {
+    const response = await apiClient.post(
+      endpoints.auth.login,
+      body,
+      { 
+        headers: { 
+          'Content-Type': 'application/x-www-form-urlencoded' 
+        }
+      }
+    );
 
-  const response = await apiClient.post(
-    endpoints.auth.login,
-    body,
-    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }}
-  );
-  
-  const { access_token, user } = response.data;
-  return { token: access_token, user };
+    const { access_token, user } = response.data;
+    
+    if (!access_token || !user) {
+      throw new Error('Respuesta de autenticación inválida');
+    }
+    
+    return { token: access_token, user };
+  } catch (error) {
+    if (error.response) {
+      // El servidor respondió con un código de error
+      const { status, data } = error.response;
+      
+      if (status === 401) {
+        throw new Error('Usuario o contraseña incorrecta');
+      } else if (status === 403) {
+        throw new Error('No tiene permisos para acceder');
+      } else if (data?.detail) {
+        throw new Error(data.detail);
+      }
+    }
+    // Re-lanzar el error original si no es un caso manejado
+    throw error;
+  }
 };
 
 // Exportar el cliente API para su uso en toda la aplicación

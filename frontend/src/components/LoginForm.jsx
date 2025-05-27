@@ -19,19 +19,18 @@ const LoginForm = (props) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('🔥 handleSubmit fired →', { email, password });
+        setError(null);
         setLoading(true);
-        setError('');
+
         try {
             // 1. Realizar la petición de login
             const { token, user } = await loginUser(email, password);
-            console.log('✅ Login exitoso:', { token, user });
             
-            if (!user) {
-                throw new Error('No se recibieron datos del usuario');
+            if (!token || !user) {
+                throw new Error('Respuesta de autenticación inválida');
             }
             
-            // 2. Normalizar el formato del rol si es necesario
+            // 2. Normalizar el formato del rol
             if (!user.rol && user.role) {
                 user.rol = user.role;
             }
@@ -39,32 +38,55 @@ const LoginForm = (props) => {
             // 3. Guardar datos en localStorage
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
-            console.log('💾 Datos guardados en localStorage');
             
-            // 4. Notificar al contexto de autenticación ANTES de navegar
+            // 4. Notificar al contexto de autenticación
             if (props.onLoginSuccess) {
-                console.log('🔄 Notificando al contexto de autenticación');
                 await props.onLoginSuccess(user, token);
-                console.log('✅ Contexto actualizado correctamente');
             }
             
-            // 5. Determinar la ruta de redirección basada en el rol y navegar con replace:true
-            let redirectPath = '/dashboard'; // Ruta predeterminada
+            // 5. Determinar la ruta de redirección basada en el rol
+            let redirectPath = '/';
             
-            if (user.rol === 'admin') {
-                redirectPath = '/admin/metricas';
-            } else if (user.rol === 'abogado') {
-                redirectPath = '/abogado';
-            } else if (user.rol === 'cliente') {
-                redirectPath = '/cliente';
+            switch (user.rol.toLowerCase()) {
+                case 'admin':
+                    redirectPath = '/admin/metricas';
+                    break;
+                case 'abogado':
+                    redirectPath = '/abogado';
+                    break;
+                case 'cliente':
+                    redirectPath = '/cliente';
+                    break;
             }
             
-            // 6. Navegar con replace para evitar volver atrás a la pantalla de login
-            console.log(`🔀 Redirigiendo a: ${redirectPath}`);
+            // 6. Navegar con replace para evitar volver al login
             navigate(redirectPath, { replace: true });
+            
         } catch (err) {
-            console.error('❌ Error en login:', err);
-            setError(err.message || 'Error al iniciar sesión');
+            console.error('Error en login:', err);
+            
+            // Manejar diferentes tipos de errores
+            if (err.response) {
+                // Error de la API
+                const status = err.response.status;
+                const detail = err.response.data?.detail;
+                
+                if (status === 401) {
+                    setError('Usuario o contraseña incorrecta');
+                } else if (status === 403) {
+                    setError('No tiene permisos para acceder');
+                } else if (detail) {
+                    setError(detail);
+                } else {
+                    setError('Error al iniciar sesión');
+                }
+            } else if (err.request) {
+                // Error de red
+                setError('Error de conexión. Por favor, intente más tarde.');
+            } else {
+                // Otros errores
+                setError(err.message || 'Error al iniciar sesión');
+            }
         } finally {
             setLoading(false);
         }

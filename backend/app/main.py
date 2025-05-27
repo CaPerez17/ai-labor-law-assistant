@@ -37,26 +37,48 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# Orígenes permitidos para CORS
+# Configurar orígenes para CORS usando variables de entorno
 origins = [
-    "https://legalassista-frontend.onrender.com",
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "https://legalassista.onrender.com",
+    settings.FRONTEND_URL,  # URL del frontend desde config
+    "http://localhost:5173",  # Desarrollo local (Vite)
+    "http://localhost:5174",  # Desarrollo local alternativo
+    "http://localhost:3000",  # Desarrollo local (React)
+    "https://legalassista-frontend.onrender.com",  # Frontend en Render
+    "https://legalassista.onrender.com",  # Backend en Render (para testing)
 ]
 
-# Configurar CORS
+# Filtrar orígenes vacíos y duplicados
+origins = list(set(filter(None, origins)))
+
+# Log detallado de la configuración CORS
+logger.info("=== CONFIGURACIÓN CORS ===")
+logger.info(f"FRONTEND_URL desde config: {settings.FRONTEND_URL}")
+logger.info(f"Orígenes permitidos: {origins}")
+
+# Configurar CORS con configuración completa
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type", 
+        "Accept",
+        "Origin",
+        "User-Agent",
+        "DNT",
+        "Cache-Control",
+        "X-Mx-ReqToken",
+        "Keep-Alive",
+        "X-Requested-With",
+        "If-Modified-Since",
+    ],
+    expose_headers=["*"],
     max_age=86400,  # Caché de preflight por 24 horas
 )
 
-# Log para registrar la configuración de CORS
-logger.info(f"CORS configurado con orígenes permitidos: {origins}")
+logger.info("✅ CORS configurado exitosamente")
 
 # Ruta raíz
 @app.get("/")
@@ -72,6 +94,19 @@ def health():
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}
+
+# Endpoint específico para probar CORS
+@app.get("/cors-test")
+def cors_test(request: Request):
+    """Endpoint específico para probar la configuración de CORS"""
+    origin = request.headers.get("origin", "No origin header")
+    return {
+        "status": "ok",
+        "message": "CORS funcionando correctamente",
+        "origin": origin,
+        "allowed_origins": origins,
+        "cors_configured": True
+    }
 
 # Incluir el router de la API
 app.include_router(api_router, prefix=settings.API_V1_STR) 
