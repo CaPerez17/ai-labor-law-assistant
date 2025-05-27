@@ -292,28 +292,37 @@ curl -X POST /api/v1/docs/upload \
 #### Backend (.env)
 ```env
 # Base de datos
-DATABASE_URL=postgresql://user:pass@host:port/legalassista
+DATABASE_URL=postgresql://usuario:contraseña@localhost:5432/nombre_db
 
 # Seguridad
-SECRET_KEY=your-super-secret-jwt-key-here
+SECRET_KEY=tu_clave_secreta_muy_segura
 ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+ACCESS_TOKEN_EXPIRE_MINUTES=10080  # 7 días
 
 # Frontend
-FRONTEND_URL=https://legalassista-frontend.onrender.com
+FRONTEND_URL=http://localhost:3000
 
 # IA
-OPENAI_API_KEY=sk-your-openai-key-here
+OPENAI_API_KEY=tu_api_key_de_openai
 
 # Email
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
+MAIL_USERNAME=tu_email@gmail.com
+MAIL_PASSWORD=tu_contraseña_de_aplicación
+MAIL_FROM=tu_email@gmail.com
+MAIL_PORT=587
+MAIL_SERVER=smtp.gmail.com
 
 # WhatsApp (opcional)
-WHATSAPP_TOKEN=your-whatsapp-token
-WHATSAPP_PHONE_ID=your-phone-id
+WHATSAPP_API_URL=https://graph.facebook.com/v17.0
+WHATSAPP_API_TOKEN=tu_token_de_whatsapp
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Configuración de la aplicación
+DEBUG=False
+LOG_LEVEL=INFO
+DAILY_QUERY_LIMIT=50
 ```
 
 #### Frontend (.env)

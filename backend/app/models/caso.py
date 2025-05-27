@@ -45,7 +45,7 @@ class Caso(Base):
     cliente = relationship("Usuario", foreign_keys=[cliente_id], back_populates="casos_como_cliente")
     abogado = relationship("Usuario", foreign_keys=[abogado_id], back_populates="casos_como_abogado")
     documentos = relationship("Documento", back_populates="caso")
-    mensajes = relationship("Mensaje", back_populates="caso")
+    mensajes = relationship("Mensaje", back_populates="caso", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Caso(id={self.id}, titulo='{self.titulo}', estado='{self.estado.value}')>" 

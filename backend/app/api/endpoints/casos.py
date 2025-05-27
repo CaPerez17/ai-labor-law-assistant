@@ -6,96 +6,60 @@ Endpoints para la gestión de casos
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-
-from app.db.session import get_db
-from app.models.caso import Caso
-from app.schemas.caso import CasoCreate, CasoResponse
-from app.core.auth import get_current_user
+from app.core.security import get_current_active_user
 from app.models.usuario import Usuario
+from app.schemas.caso import CasoCreate, CasoUpdate, Caso
+from app.services.caso_service import CasoService
+from app.db.session import get_db
 
 router = APIRouter()
 
-@router.post("/", response_model=CasoResponse)
-def crear_caso(
+@router.post("/", response_model=Caso)
+def create_caso(
     caso: CasoCreate,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
-    """Crea un nuevo caso"""
-    db_caso = Caso(**caso.model_dump(), usuario_id=current_user.id)
-    db.add(db_caso)
-    db.commit()
-    db.refresh(db_caso)
-    return db_caso
+    return CasoService(db).create_caso(caso, current_user)
 
-@router.get("/", response_model=List[CasoResponse])
-def listar_casos(
+@router.get("/", response_model=List[Caso])
+def get_casos(
+    skip: int = 0,
+    limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
-    """Lista todos los casos del usuario"""
-    return db.query(Caso).filter(Caso.usuario_id == current_user.id).all()
+    return CasoService(db).get_casos(current_user, skip, limit)
 
-@router.get("/{caso_id}", response_model=CasoResponse)
-def obtener_caso(
+@router.get("/{caso_id}", response_model=Caso)
+def get_caso(
     caso_id: int,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
-    """Obtiene un caso específico"""
-    caso = db.query(Caso).filter(
-        Caso.id == caso_id,
-        Caso.usuario_id == current_user.id
-    ).first()
+    caso = CasoService(db).get_caso(caso_id, current_user)
     if not caso:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Caso no encontrado"
-        )
+        raise HTTPException(status_code=404, detail="Caso no encontrado")
     return caso
 
-@router.put("/{caso_id}", response_model=CasoResponse)
-def actualizar_caso(
+@router.put("/{caso_id}", response_model=Caso)
+def update_caso(
     caso_id: int,
-    caso_update: CasoCreate,
+    caso: CasoUpdate,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
-    """Actualiza un caso existente"""
-    db_caso = db.query(Caso).filter(
-        Caso.id == caso_id,
-        Caso.usuario_id == current_user.id
-    ).first()
-    if not db_caso:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Caso no encontrado"
-        )
-    
-    for key, value in caso_update.model_dump().items():
-        setattr(db_caso, key, value)
-    
-    db.commit()
-    db.refresh(db_caso)
-    return db_caso
+    updated_caso = CasoService(db).update_caso(caso_id, caso, current_user)
+    if not updated_caso:
+        raise HTTPException(status_code=404, detail="Caso no encontrado")
+    return updated_caso
 
 @router.delete("/{caso_id}", status_code=status.HTTP_204_NO_CONTENT)
-def eliminar_caso(
+def delete_caso(
     caso_id: int,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
-    """Elimina un caso"""
-    caso = db.query(Caso).filter(
-        Caso.id == caso_id,
-        Caso.usuario_id == current_user.id
-    ).first()
-    if not caso:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Caso no encontrado"
-        )
-    
-    db.delete(caso)
-    db.commit()
+    if not CasoService(db).delete_caso(caso_id, current_user):
+        raise HTTPException(status_code=404, detail="Caso no encontrado")
     return None 

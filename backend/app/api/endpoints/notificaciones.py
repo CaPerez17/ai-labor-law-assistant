@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 
-from app.core.auth import get_current_user
+from app.core.security import get_current_active_user
 from app.db.session import get_db
 from app.models.usuario import Usuario
 from app.models.notificacion import Notificacion, TipoNotificacion
@@ -15,16 +15,16 @@ notificacion_service = NotificacionService()
 @router.post("/", response_model=NotificacionResponse)
 async def crear_notificacion(
     notificacion: NotificacionCreate,
-    current_user: Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """
     Crea una nueva notificación.
     
     Args:
         notificacion: Datos de la notificación
-        current_user: Usuario autenticado
         db: Sesión de base de datos
+        current_user: Usuario autenticado
         
     Returns:
         NotificacionResponse: Notificación creada
@@ -42,8 +42,8 @@ async def crear_notificacion(
 async def obtener_notificaciones(
     solo_no_leidas: bool = False,
     limite: int = 50,
-    current_user: Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """
     Obtiene las notificaciones del usuario actual.
@@ -51,8 +51,8 @@ async def obtener_notificaciones(
     Args:
         solo_no_leidas: Si es True, solo devuelve notificaciones no leídas
         limite: Número máximo de notificaciones a devolver
-        current_user: Usuario autenticado
         db: Sesión de base de datos
+        current_user: Usuario autenticado
         
     Returns:
         List[NotificacionResponse]: Lista de notificaciones
@@ -66,15 +66,15 @@ async def obtener_notificaciones(
 
 @router.get("/contar-no-leidas")
 async def contar_no_leidas(
-    current_user: Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """
     Cuenta las notificaciones no leídas del usuario actual.
     
     Args:
-        current_user: Usuario autenticado
         db: Sesión de base de datos
+        current_user: Usuario autenticado
         
     Returns:
         dict: Número de notificaciones no leídas
@@ -85,16 +85,16 @@ async def contar_no_leidas(
 @router.post("/{notificacion_id}/marcar-leida", response_model=NotificacionResponse)
 async def marcar_como_leida(
     notificacion_id: int,
-    current_user: Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """
     Marca una notificación como leída.
     
     Args:
         notificacion_id: ID de la notificación
-        current_user: Usuario autenticado
         db: Sesión de base de datos
+        current_user: Usuario autenticado
         
     Returns:
         NotificacionResponse: Notificación actualizada
@@ -115,18 +115,77 @@ async def marcar_como_leida(
 
 @router.post("/marcar-todas-leidas")
 async def marcar_todas_como_leidas(
-    current_user: Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """
     Marca todas las notificaciones del usuario como leídas.
     
     Args:
-        current_user: Usuario autenticado
         db: Sesión de base de datos
+        current_user: Usuario autenticado
         
     Returns:
         dict: Número de notificaciones marcadas como leídas
     """
     count = await notificacion_service.marcar_todas_como_leidas(db, current_user.id)
-    return {"count": count} 
+    return {"count": count}
+
+@router.get("/{notificacion_id}", response_model=NotificacionResponse)
+async def obtener_notificacion(
+    notificacion_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
+):
+    """
+    Obtiene una notificación específica del usuario actual.
+    
+    Args:
+        notificacion_id: ID de la notificación
+        db: Sesión de base de datos
+        current_user: Usuario autenticado
+        
+    Returns:
+        NotificacionResponse: Notificación obtenida
+    """
+    notificacion = await notificacion_service.obtener_notificacion(
+        db=db,
+        notificacion_id=notificacion_id,
+        usuario_id=current_user.id
+    )
+    
+    if not notificacion:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notificación no encontrada"
+        )
+    
+    return notificacion
+
+@router.delete("/{notificacion_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def eliminar_notificacion(
+    notificacion_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
+):
+    """
+    Elimina una notificación específica del usuario actual.
+    
+    Args:
+        notificacion_id: ID de la notificación
+        db: Sesión de base de datos
+        current_user: Usuario autenticado
+        
+    Returns:
+        None: Notificación eliminada exitosamente
+    """
+    if not await notificacion_service.eliminar_notificacion(
+        db=db,
+        notificacion_id=notificacion_id,
+        usuario_id=current_user.id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notificación no encontrada"
+        )
+    return None 
