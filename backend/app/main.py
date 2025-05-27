@@ -80,6 +80,31 @@ app.add_middleware(
 
 logger.info("✅ CORS configurado exitosamente")
 
+# Event handler para ejecutar seed al iniciar la aplicación
+@app.on_event("startup")
+async def startup_event():
+    """Ejecutar tareas de inicialización al arrancar la aplicación"""
+    logger.info("🚀 Ejecutando tareas de startup...")
+    
+    try:
+        # Ejecutar seed de datos de usuario
+        from app.db.seed import create_test_users, verify_user_credentials
+        
+        logger.info("🔑 Inicializando usuarios de prueba...")
+        create_test_users()
+        
+        logger.info("🔐 Verificando credenciales de usuarios...")
+        if verify_user_credentials():
+            logger.info("✅ Usuarios de prueba inicializados correctamente")
+        else:
+            logger.warning("⚠️ Problema al verificar credenciales de usuarios")
+            
+    except Exception as e:
+        logger.error(f"❌ Error durante startup: {str(e)}")
+        # No interrumpir el inicio de la aplicación por errores de seed
+        
+    logger.info("✅ Startup completado")
+
 # Ruta raíz
 @app.get("/")
 def read_root():
