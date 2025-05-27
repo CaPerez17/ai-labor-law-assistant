@@ -8,13 +8,13 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.core.security import get_current_active_user
 from app.models.usuario import Usuario
-from app.schemas.caso import CasoCreate, CasoUpdate, Caso
+from app.schemas.caso import CasoCreate, CasoUpdate, CasoResponse
 from app.services.caso_service import CasoService
 from app.db.session import get_db
 
 router = APIRouter()
 
-@router.post("/", response_model=Caso)
+@router.post("/", response_model=CasoResponse)
 def create_caso(
     caso: CasoCreate,
     db: Session = Depends(get_db),
@@ -22,7 +22,7 @@ def create_caso(
 ):
     return CasoService(db).create_caso(caso, current_user)
 
-@router.get("/", response_model=List[Caso])
+@router.get("/", response_model=List[CasoResponse])
 def get_casos(
     skip: int = 0,
     limit: int = 100,
@@ -31,7 +31,7 @@ def get_casos(
 ):
     return CasoService(db).get_casos(current_user, skip, limit)
 
-@router.get("/{caso_id}", response_model=Caso)
+@router.get("/{caso_id}", response_model=CasoResponse)
 def get_caso(
     caso_id: int,
     db: Session = Depends(get_db),
@@ -42,7 +42,7 @@ def get_caso(
         raise HTTPException(status_code=404, detail="Caso no encontrado")
     return caso
 
-@router.put("/{caso_id}", response_model=Caso)
+@router.put("/{caso_id}", response_model=CasoResponse)
 def update_caso(
     caso_id: int,
     caso: CasoUpdate,

@@ -5,6 +5,7 @@ from typing import List
 from app.core.security import get_current_active_user
 from app.db.session import get_db
 from app.models.usuario import Usuario
+from app.models.mensaje import Mensaje
 from app.schemas.chat import MensajeCreate, MensajeResponse, ConversacionResponse
 from app.services.chat_service import ChatService
 from app.core.websocket import ConnectionManager
@@ -16,20 +17,22 @@ manager = ConnectionManager()
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
     try:
-        await chat_service.connect(websocket, user_id)
-        chat_service.update_user_status(user_id, True, db)
+        await manager.connect(websocket, user_id)
         
         while True:
             try:
                 data = await websocket.receive_json()
                 
                 if data["type"] == "message":
-                    mensaje = await chat_service.send_message(
-                        message=data["content"],
-                        sender_id=user_id,
-                        receiver_id=data["receiver_id"],
-                        db=db
+                    # Crear mensaje en la base de datos
+                    mensaje = Mensaje(
+                        contenido=data["content"],
+                        remitente_id=user_id,
+                        receptor_id=data["receiver_id"]
                     )
+                    db.add(mensaje)
+                    db.commit()
+                    db.refresh(mensaje)
                     
                     # Enviar confirmación al remitente
                     await websocket.send_json({
@@ -40,17 +43,19 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
                         }
                     })
                     
+                    # Enviar mensaje al receptor si está conectado
+                    await manager.send_message_to_user(
+                        f"Nuevo mensaje de {user_id}: {data['content']}", 
+                        data["receiver_id"]
+                    )
+                    
             except WebSocketDisconnect:
                 break
                 
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+        print(f"Error en WebSocket: {e}")
     finally:
-        chat_service.disconnect(user_id)
-        chat_service.update_user_status(user_id, False, db)
+        manager.disconnect(websocket, user_id)
 
 @router.get("/conversaciones", response_model=List[ConversacionResponse])
 async def get_conversaciones(
@@ -61,23 +66,13 @@ async def get_conversaciones(
     conversaciones = []
     
     # Obtener usuarios con los que ha tenido conversaciones
-    if current_user.rol == "abogado":
+    if current_user.rol.value == "ABOGADO":
         usuarios = db.query(Usuario).filter(
-            Usuario.rol == "cliente",
-            Usuario.id.in_(
-                db.query(Mensaje.receptor_id).filter(Mensaje.remitente_id == current_user.id).union(
-                    db.query(Mensaje.remitente_id).filter(Mensaje.receptor_id == current_user.id)
-                )
-            )
+            Usuario.rol.value == "CLIENTE"
         ).all()
     else:
         usuarios = db.query(Usuario).filter(
-            Usuario.rol == "abogado",
-            Usuario.id.in_(
-                db.query(Mensaje.receptor_id).filter(Mensaje.remitente_id == current_user.id).union(
-                    db.query(Mensaje.remitente_id).filter(Mensaje.receptor_id == current_user.id)
-                )
-            )
+            Usuario.rol.value == "ABOGADO"
         ).all()
     
     for usuario in usuarios:
@@ -88,7 +83,11 @@ async def get_conversaciones(
         ).order_by(Mensaje.timestamp.desc()).first()
         
         # Contar mensajes no leídos
-        no_leidos = chat_service.get_unread_count(current_user.id, db)
+        no_leidos = db.query(Mensaje).filter(
+            Mensaje.remitente_id == usuario.id,
+            Mensaje.receptor_id == current_user.id,
+            Mensaje.leido == False
+        ).count()
         
         conversaciones.append(ConversacionResponse(
             id=usuario.id,
@@ -96,7 +95,7 @@ async def get_conversaciones(
             ultimo_mensaje=ultimo_mensaje.contenido if ultimo_mensaje else None,
             timestamp=ultimo_mensaje.timestamp if ultimo_mensaje else None,
             no_leidos=no_leidos,
-            online=usuario.online
+            online=False  # Implementar lógica de estado online si es necesario
         ))
     
     return conversaciones
@@ -108,7 +107,12 @@ async def get_mensajes(
     db: Session = Depends(get_db)
 ):
     """Obtiene los mensajes de una conversación específica"""
-    return chat_service.get_conversation(current_user.id, other_user_id, db)
+    mensajes = db.query(Mensaje).filter(
+        ((Mensaje.remitente_id == current_user.id) & (Mensaje.receptor_id == other_user_id)) |
+        ((Mensaje.remitente_id == other_user_id) & (Mensaje.receptor_id == current_user.id))
+    ).order_by(Mensaje.timestamp.asc()).all()
+    
+    return mensajes
 
 @router.post("/mensajes/{message_id}/leer")
 async def marcar_mensaje_leido(
@@ -117,36 +121,33 @@ async def marcar_mensaje_leido(
     db: Session = Depends(get_db)
 ):
     """Marca un mensaje como leído"""
-    return await chat_service.mark_as_read(message_id, current_user.id, db)
+    mensaje = db.query(Mensaje).filter(
+        Mensaje.id == message_id,
+        Mensaje.receptor_id == current_user.id
+    ).first()
+    
+    if mensaje:
+        mensaje.leido = True
+        db.commit()
+        return {"message": "Mensaje marcado como leído"}
+    else:
+        raise HTTPException(status_code=404, detail="Mensaje no encontrado")
 
-@router.post("/messages", response_model=ChatMessage)
+@router.post("/mensajes", response_model=MensajeResponse)
 def create_message(
-    message: ChatMessageCreate,
+    message: MensajeCreate,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_active_user)
 ):
-    return ChatService(db).create_message(message, current_user)
-
-@router.get("/messages", response_model=List[ChatMessage])
-def get_messages(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_current_active_user)
-):
-    return ChatService(db).get_messages(current_user, skip, limit)
-
-@router.websocket("/ws/{client_id}")
-async def websocket_endpoint(
-    websocket: WebSocket,
-    client_id: str,
-    db: Session = Depends(get_db)
-):
-    await manager.connect(websocket)
-    try:
-        while True:
-            data = await websocket.receive_text()
-            await manager.broadcast(f"Client #{client_id}: {data}")
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
-        await manager.broadcast(f"Client #{client_id} left the chat") 
+    """Crea un nuevo mensaje"""
+    db_mensaje = Mensaje(
+        contenido=message.contenido,
+        remitente_id=current_user.id,
+        receptor_id=message.receptor_id
+    )
+    
+    db.add(db_mensaje)
+    db.commit()
+    db.refresh(db_mensaje)
+    
+    return db_mensaje 
