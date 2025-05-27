@@ -1,0 +1,41 @@
+{
+  "name": "legalassista-e2e-tests",
+  "version": "1.0.0",
+  "description": "Pruebas End-to-End para LegalAssista",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "test:abogado": "jest e2e/abogado.test.js",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:verbose": "jest --verbose",
+    "test:ci": "jest --ci --coverage --watchAll=false"
+  },
+  "keywords": [
+    "e2e",
+    "testing",
+    "legal",
+    "api"
+  ],
+  "author": "LegalAssista Team",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "axios": "^1.6.0",
+    "form-data": "^4.0.0",
+    "@types/jest": "^29.5.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testTimeout": 30000,
+    "verbose": true,
+    "collectCoverageFrom": [
+      "**/*.{js,jsx}",
+      "!**/node_modules/**",
+      "!**/coverage/**"
+    ],
+    "testMatch": [
+      "**/e2e/**/*.test.js"
+    ]
+  }
+} 
