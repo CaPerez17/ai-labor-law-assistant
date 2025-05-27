@@ -1,74 +1,136 @@
-from fastapi import APIRouter, Depends, File, Form, UploadFile, HTTPException
+"""
+Endpoints para gestión de documentos de casos
+"""
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from typing import List
-from datetime import date, datetime
+from typing import List, Optional
+import logging
 import os
-import shutil
+import uuid
 from pathlib import Path
 
-from app.api.deps import get_current_user, get_db
+from app.db.session import get_db
 from app.models.usuario import Usuario
 from app.models.documento import Documento
-from app.services.preprocessor import procesar_documento
+from app.core.security import get_current_active_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
+# Directorio para almacenar archivos subidos
+UPLOAD_DIRECTORY = "uploads/documentos"
+os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
-@router.post("/upload", status_code=201)
-async def upload_document(
-    usuario: Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db),
-    fecha: date = Form(...),
-    numero_ley: str = Form(...),
+@router.post("/upload")
+async def subir_documento(
+    file: UploadFile = File(...),
+    caso_id: Optional[int] = Form(None),
     categoria: str = Form(...),
-    subcategoria: str = Form(...),
-    file: UploadFile = File(...)
+    subcategoria: Optional[str] = Form(None),
+    current_user: Usuario = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ):
+    """
+    Sube un documento asociado a un caso
+    """
     try:
-        # Crear directorio para el usuario si no existe
-        user_dir = UPLOAD_DIR / str(usuario.id)
-        user_dir.mkdir(exist_ok=True)
+        # Verificar que el usuario es abogado
+        if current_user.rol.value != "abogado":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo abogados pueden subir documentos"
+            )
+        
+        # Validar archivo
+        if not file.filename:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Nombre de archivo requerido"
+            )
+        
+        # Generar nombre único para el archivo
+        file_extension = Path(file.filename).suffix
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        file_path = os.path.join(UPLOAD_DIRECTORY, unique_filename)
         
         # Guardar archivo
-        file_path = user_dir / file.filename
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
         
-        # Procesar documento
-        try:
-            texto_procesado = procesar_documento(str(file_path))
-        except Exception as e:
-            print(f"Error procesando documento {file.filename}: {str(e)}")
-            texto_procesado = None
-        
-        # Crear registro en BD con estructura actualizada
-        now = datetime.now()
+        # Crear registro en base de datos
         documento = Documento(
-            nombre=file.filename,  # nombre en lugar de nombre_archivo
-            tipo=f"{categoria}/{subcategoria}",  # Combinamos categoría y subcategoría
-            contenido=texto_procesado,  # Guardamos el texto procesado
-            fecha_subida=now,
-            fecha_creacion=now,
-            resultado_analisis=f"Número de ley: {numero_ley}, Fecha: {fecha}",  # Guardamos metadatos como resultado
-            estado="procesado",
-            usuario_id=usuario.id
+            nombre=file.filename,
+            ruta_archivo=file_path,
+            tipo=file.content_type or "application/octet-stream",
+            tamaño=len(content),
+            categoria=categoria,
+            subcategoria=subcategoria,
+            caso_id=caso_id,
+            usuario_id=current_user.id
         )
+        
         db.add(documento)
         db.commit()
         db.refresh(documento)
         
+        logger.info(f"Documento {file.filename} subido por abogado {current_user.email}")
+        
         return {
             "id": documento.id,
-            "filename": documento.nombre,  # nombre en lugar de nombre_archivo
+            "filename": file.filename,
+            "size": len(content),
             "message": "Documento subido exitosamente"
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Error subiendo documento: {str(e)}")
         raise HTTPException(
-            status_code=500,
-            detail=f"Error al subir el documento: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
         )
-    finally:
-        file.file.close() 
+
+@router.get("/caso/{caso_id}")
+async def obtener_documentos_caso(
+    caso_id: int,
+    current_user: Usuario = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene todos los documentos de un caso específico
+    """
+    try:
+        # Verificar que el usuario es abogado
+        if current_user.rol.value != "abogado":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Acceso denegado"
+            )
+        
+        # Buscar documentos del caso
+        documentos = db.query(Documento).filter(Documento.caso_id == caso_id).all()
+        
+        return [
+            {
+                "id": doc.id,
+                "nombre": doc.nombre,
+                "tipo": doc.tipo,
+                "tamaño": doc.tamaño,
+                "categoria": doc.categoria,
+                "subcategoria": doc.subcategoria,
+                "fecha_subida": doc.fecha_creacion
+            }
+            for doc in documentos
+        ]
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error obteniendo documentos del caso {caso_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        ) 

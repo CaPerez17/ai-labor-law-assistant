@@ -31,8 +31,11 @@ class Usuario(Base):
     recibir_emails = Column(Boolean, default=True)
     fecha_registro = Column(DateTime, default=datetime.utcnow)
 
-    # Relaciones
-    casos = relationship("Caso", back_populates="usuario")
+    # Relaciones con casos
+    casos_como_cliente = relationship("Caso", foreign_keys="[Caso.cliente_id]", back_populates="cliente")
+    casos_como_abogado = relationship("Caso", foreign_keys="[Caso.abogado_id]", back_populates="abogado")
+    
+    # Otras relaciones
     documentos = relationship("Documento", back_populates="usuario")
     metricas_uso = relationship("MetricaUso", back_populates="usuario")
     feedback = relationship("FeedbackUsuario", back_populates="usuario")

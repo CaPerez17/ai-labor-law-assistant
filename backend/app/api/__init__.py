@@ -15,6 +15,7 @@ from .endpoints import (
     indemnizacion,
     contrato,
     documento,
+    docs,
     onboarding,
     escalamiento,
     metricas,
@@ -34,6 +35,7 @@ api_router = APIRouter()
 # Incluir los routers de los endpoints
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(documents.router, prefix="/documents", tags=["documents"])
+api_router.include_router(docs.router, prefix="/docs", tags=["docs"])
 api_router.include_router(queries.router, prefix="/queries", tags=["queries"])
 api_router.include_router(search.router, prefix="/search", tags=["search"])
 api_router.include_router(search_optimized.router, prefix="/search-optimized", tags=["search", "optimized"])

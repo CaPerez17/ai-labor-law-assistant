@@ -88,10 +88,13 @@ async def startup_event():
     
     try:
         # Ejecutar seed de datos de usuario
-        from app.db.seed import create_test_users, verify_user_credentials
+        from app.db.seed import create_test_users, create_test_cases, verify_user_credentials
         
         logger.info("🔑 Inicializando usuarios de prueba...")
         create_test_users()
+        
+        logger.info("📋 Inicializando casos de prueba...")
+        create_test_cases()
         
         logger.info("🔐 Verificando credenciales de usuarios...")
         if verify_user_credentials():

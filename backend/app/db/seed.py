@@ -12,6 +12,7 @@ sys.path.append(str(backend_dir))
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal, engine
 from app.models.usuario import Usuario, RolUsuario
+from app.models.caso import Caso, EstadoCaso, NivelRiesgo
 from app.core.security import get_password_hash
 from app.db.base import Base
 import logging
@@ -101,6 +102,76 @@ def create_test_users():
     finally:
         db.close()
 
+def create_test_cases():
+    """Crear casos de prueba"""
+    db: Session = SessionLocal()
+    
+    try:
+        # Obtener usuarios
+        abogado = db.query(Usuario).filter(Usuario.email == "abogado@legalassista.com").first()
+        cliente = db.query(Usuario).filter(Usuario.email == "cliente@legalassista.com").first()
+        
+        if not abogado or not cliente:
+            logger.warning("No se pueden crear casos: faltan usuarios abogado o cliente")
+            return
+        
+        # Verificar si ya existen casos
+        existing_cases = db.query(Caso).count()
+        
+        if existing_cases > 0:
+            logger.info(f"Ya existen {existing_cases} casos en la base de datos")
+            return
+        
+        # Crear casos dummy
+        casos_dummy = [
+            {
+                "titulo": "Caso Dummy - Despido Injustificado",
+                "descripcion": "Caso de prueba para verificar comunicación cliente-abogado. El cliente reporta despido sin justa causa.",
+                "estado": EstadoCaso.PENDIENTE_VERIFICACION,
+                "nivel_riesgo": NivelRiesgo.MEDIO,
+                "cliente_id": cliente.id,
+                "abogado_id": abogado.id,
+                "comentarios": "Caso dummy para testing de la funcionalidad abogado"
+            },
+            {
+                "titulo": "Consulta sobre Horas Extras",
+                "descripcion": "Cliente consulta sobre pago de horas extras no reconocidas por la empresa.",
+                "estado": EstadoCaso.PENDIENTE,
+                "nivel_riesgo": NivelRiesgo.BAJO,
+                "cliente_id": cliente.id,
+                "abogado_id": abogado.id,
+                "comentarios": None
+            },
+            {
+                "titulo": "Acoso Laboral",
+                "descripcion": "Reporte de acoso laboral por parte del supervisor directo.",
+                "estado": EstadoCaso.EN_PROCESO,
+                "nivel_riesgo": NivelRiesgo.ALTO,
+                "cliente_id": cliente.id,
+                "abogado_id": abogado.id,
+                "comentarios": "Caso requiere atención urgente"
+            }
+        ]
+        
+        for caso_data in casos_dummy:
+            caso = Caso(**caso_data)
+            db.add(caso)
+        
+        db.commit()
+        logger.info(f"✅ Creados {len(casos_dummy)} casos dummy exitosamente")
+        
+        # Mostrar casos creados
+        casos = db.query(Caso).all()
+        for caso in casos:
+            logger.info(f"- Caso {caso.id}: {caso.titulo} ({caso.estado.value})")
+        
+    except Exception as e:
+        logger.error(f"Error al crear casos dummy: {str(e)}")
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
 def verify_user_credentials():
     """Verificar que las credenciales del abogado funcionen"""
     from app.core.security import verify_password
@@ -138,6 +209,9 @@ if __name__ == "__main__":
     
     # Crear usuarios
     create_test_users()
+    
+    # Crear casos dummy
+    create_test_cases()
     
     # Verificar credenciales
     logger.info("🔐 Verificando credenciales...")

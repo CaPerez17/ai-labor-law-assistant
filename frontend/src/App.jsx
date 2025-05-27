@@ -4,7 +4,7 @@ import LoginForm from './components/LoginForm';
 import RegistroForm from './components/RegistroForm';
 import OnboardingAssistant from './components/OnboardingAssistant';
 import DocumentoAnalyzer from './components/DocumentoAnalyzer';
-import AbogadoDashboard from './components/AbogadoDashboard';
+import AbogadoDashboard from './pages/AbogadoDashboard';
 import MetricasDashboard from './components/MetricasDashboard';
 import UsuariosDashboard from './components/UsuariosDashboard';
 import FacturacionUsuario from './components/FacturacionUsuario';
