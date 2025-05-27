@@ -13,7 +13,9 @@ from datetime import datetime
 from dotenv import load_dotenv
 from app.core.config import settings
 import jinja2
+import logging
 
+logger = logging.getLogger(__name__)
 load_dotenv()
 
 class EmailService:
@@ -21,21 +23,56 @@ class EmailService:
 
     def __init__(self):
         """Inicializa el servicio de correo"""
-        self.config = ConnectionConfig(
-            MAIL_USERNAME=settings.MAIL_USERNAME,
-            MAIL_PASSWORD=settings.MAIL_PASSWORD,
-            MAIL_FROM=settings.MAIL_FROM,
-            MAIL_PORT=settings.MAIL_PORT,
-            MAIL_SERVER=settings.MAIL_SERVER,
-            MAIL_STARTTLS=True,
-            MAIL_SSL_TLS=False,
-            USE_CREDENTIALS=True
-        )
+        self.fastmail = None
+        self.jinja_env = None
+        self._initialized = False
         
-        self.fastmail = FastMail(self.config)
-        self.jinja_env = Environment(
-            loader=FileSystemLoader("app/templates/email")
-        )
+        # Verificar si las variables de email están configuradas
+        if self._email_vars_configured():
+            self._initialize_email()
+        else:
+            logger.warning("⚠️ Variables de entorno de email no configuradas. EmailService deshabilitado.")
+
+    def _email_vars_configured(self) -> bool:
+        """Verifica si las variables de entorno de email están configuradas"""
+        required_vars = [
+            settings.MAIL_USERNAME,
+            settings.MAIL_PASSWORD, 
+            settings.MAIL_FROM,
+            settings.MAIL_SERVER
+        ]
+        return all(var and var.strip() for var in required_vars)
+
+    def _initialize_email(self):
+        """Inicializa la configuración de email si las variables están disponibles"""
+        try:
+            self.config = ConnectionConfig(
+                MAIL_USERNAME=settings.MAIL_USERNAME,
+                MAIL_PASSWORD=settings.MAIL_PASSWORD,
+                MAIL_FROM=settings.MAIL_FROM,
+                MAIL_PORT=settings.MAIL_PORT,
+                MAIL_SERVER=settings.MAIL_SERVER,
+                MAIL_STARTTLS=True,
+                MAIL_SSL_TLS=False,
+                USE_CREDENTIALS=True
+            )
+            
+            self.fastmail = FastMail(self.config)
+            self.jinja_env = Environment(
+                loader=FileSystemLoader("app/templates/email")
+            )
+            self._initialized = True
+            logger.info("✅ EmailService inicializado correctamente")
+        except Exception as e:
+            logger.error(f"❌ Error inicializando EmailService: {e}")
+            self.fastmail = None
+            self.jinja_env = None
+            self._initialized = False
+
+    def _check_email_enabled(self):
+        """Verifica si el servicio de email está habilitado"""
+        if not self._initialized:
+            raise Exception("Servicio de email no está configurado. Revisa las variables de entorno MAIL_*")
 
     async def enviar_correo_activacion(self, email: str, nombre: str, token: str) -> None:
         """
@@ -46,6 +83,8 @@ class EmailService:
             nombre: Nombre del usuario
             token: Token de activación
         """
+        self._check_email_enabled()
+        
         template = self.jinja_env.get_template("activacion.html")
         url_activacion = f"http://{settings.HOST}:{settings.PORT}/activar-cuenta?token={token}"
         
@@ -72,6 +111,8 @@ class EmailService:
             email: Correo electrónico del destinatario
             token: Token de recuperación
         """
+        self._check_email_enabled()
+        
         template = self.jinja_env.get_template("recuperacion.html")
         url_recuperacion = f"http://{settings.HOST}:{settings.PORT}/recuperar-password?token={token}"
         
@@ -91,6 +132,8 @@ class EmailService:
 
     async def enviar_notificacion(self, email: str, nombre: str, titulo: str, mensaje: str):
         """Envía una notificación por correo electrónico"""
+        self._check_email_enabled()
+        
         template = self.jinja_env.get_template("notificacion.html")
         frontend_url = f"http://{settings.HOST}:{settings.PORT}"
         

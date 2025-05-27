@@ -86,12 +86,17 @@ async def registro(
             expires_delta=timedelta(hours=24)
         )
         
-        # Enviar correo de activación
-        await email_service.enviar_correo_activacion(
-            email=usuario.email,
-            nombre=usuario.nombre,
-            token=token
-        )
+        # Intentar enviar correo de activación
+        try:
+            await email_service.enviar_correo_activacion(
+                email=usuario.email,
+                nombre=usuario.nombre,
+                token=token
+            )
+            logger.info(f"✅ Correo de activación enviado a {usuario.email}")
+        except Exception as email_error:
+            logger.warning(f"⚠️ No se pudo enviar correo de activación: {email_error}")
+            # No fallar el registro si el email no se puede enviar
         
         return usuario
     except Exception as e:
@@ -257,13 +262,24 @@ async def solicitar_recuperacion(
             expires_delta=timedelta(hours=24)
         )
         
-        # Enviar correo de recuperación
-        await email_service.enviar_correo_recuperacion(
-            email=usuario.email,
-            token=token
-        )
+        # Intentar enviar correo de recuperación
+        try:
+            await email_service.enviar_correo_recuperacion(
+                email=usuario.email,
+                token=token
+            )
+            logger.info(f"✅ Correo de recuperación enviado a {usuario.email}")
+            return {"message": "Correo de recuperación enviado"}
+        except Exception as email_error:
+            logger.warning(f"⚠️ No se pudo enviar correo de recuperación: {email_error}")
+            return {
+                "message": "Token de recuperación generado", 
+                "token": token,
+                "note": "El servicio de email no está disponible. Usa este token para restablecer tu contraseña."
+            }
         
-        return {"message": "Correo de recuperación enviado"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
