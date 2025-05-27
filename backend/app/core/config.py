@@ -55,6 +55,6 @@ class Settings(BaseSettings):
     WHATSAPP_API_TOKEN: str = os.environ.get("WHATSAPP_API_TOKEN", "")
     WHATSAPP_PHONE_NUMBER_ID: str = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "")
     
-    model_config = ConfigDict(env_file=".env")
+    model_config = ConfigDict(env_file=".env", extra='ignore')
 
 settings = Settings() 
