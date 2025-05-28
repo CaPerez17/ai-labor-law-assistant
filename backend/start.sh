@@ -21,9 +21,13 @@ check_env_var "SECRET_KEY" || echo "Clave secreta no configurada"
 
 echo "🚀 Iniciando LegalAssista API en puerto ${PORT:-10000}"
 
-# Ejecutar corrección de base de datos antes de cualquier otra cosa
-echo "🔧 Ejecutando corrección de base de datos..."
-python scripts/fix_production_db.py || echo "⚠️ Advertencia: Problemas en corrección de DB"
+# Paso 1: Crear tablas básicas
+echo "🏗️ Creando tablas de base de datos..."
+python scripts/create_db_tables.py || echo "⚠️ Error creando tablas básicas"
+
+# Paso 2: Ejecutar corrección completa de base de datos
+echo "🔧 Ejecutando corrección completa de base de datos..."
+python scripts/fix_production_db.py || echo "⚠️ Error en corrección avanzada de DB"
 
 # Ejecutar comando pasado como argumento (generalmente seed + uvicorn)
 if [ $# -eq 0 ]; then
