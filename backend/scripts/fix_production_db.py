@@ -60,6 +60,9 @@ def create_tables_directly(engine):
     """Crear tablas directamente usando SQL para mayor compatibilidad"""
     logger.info("🏗️ Creando tablas usando SQL directo...")
     
+    # Importar text aquí para asegurar que esté disponible
+    from sqlalchemy import text
+    
     # SQL para crear tabla usuarios
     usuarios_sql = """
     CREATE TABLE IF NOT EXISTS usuarios (
@@ -145,6 +148,9 @@ def create_test_data(engine):
     """Crear datos de prueba básicos"""
     logger.info("👥 Creando datos de prueba...")
     
+    # Importar text aquí para asegurar que esté disponible
+    from sqlalchemy import text
+    
     # Verificar si ya existen usuarios
     try:
         with engine.connect() as conn:
@@ -196,7 +202,7 @@ def main():
     
     try:
         # Importar sqlalchemy después de verificar que está disponible
-        from sqlalchemy import create_engine, inspect
+        from sqlalchemy import create_engine, inspect, text
         
         # Crear engine
         logger.info("🔗 Conectando a la base de datos...")
