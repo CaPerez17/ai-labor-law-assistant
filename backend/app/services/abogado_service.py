@@ -11,7 +11,7 @@ from typing import List, Optional
 from datetime import datetime
 from pathlib import Path
 
-from app.schemas.abogado import CasoAbogado, UpdateCasoInput, CasoResponse, EstadoCaso
+from app.schemas.abogado import CasoAbogado, UpdateCasoInput, CasoResponse
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ class AbogadoService:
     
     def obtener_casos(
         self,
-        estado: Optional[EstadoCaso] = None,
+        estado: Optional[str] = None,
         nivel_riesgo: Optional[str] = None
     ) -> List[CasoAbogado]:
         """
