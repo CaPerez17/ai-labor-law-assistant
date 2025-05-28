@@ -6,6 +6,7 @@ Este script verifica y corrige automáticamente:
 1. Columnas faltantes (como nivel_riesgo en casos)
 2. Tablas faltantes
 3. Migra datos si es necesario
+4. Crea datos de prueba iniciales
 """
 
 import os
@@ -141,39 +142,76 @@ def create_essential_tables(engine):
 
 def main():
     """Función principal para corregir la base de datos"""
-    logger.info("🔧 Iniciando corrección de base de datos...")
-    
-    # Obtener URL de base de datos
-    database_url = get_database_url()
-    if not database_url:
-        return False
-    
     try:
-        # Crear conexión
-        engine = create_engine(database_url)
+        logger.info("🔧 Iniciando corrección de base de datos de producción...")
         
-        # Verificar conexión
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-            logger.info("✅ Conexión a base de datos exitosa")
+        # Crear engine y session
+        engine = create_engine(settings.DATABASE_URL)
+        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
         
-        # Verificar tablas críticas
-        tables_ok, missing_tables = verify_critical_tables(engine)
+        # Verificar qué tablas existen
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+        logger.info(f"📋 Tablas existentes: {existing_tables}")
         
-        if not tables_ok:
-            logger.info(f"Creando {len(missing_tables)} tablas faltantes...")
-            if not create_essential_tables(engine):
-                return False
+        # Crear todas las tablas si no existen
+        from app.db.base import Base
+        logger.info("🏗️ Creando tablas faltantes...")
+        Base.metadata.create_all(bind=engine)
         
-        # Corregir tabla casos
-        if not fix_casos_table(engine):
-            logger.warning("⚠️ No se pudo corregir completamente la tabla casos")
+        # Verificar nuevamente las tablas
+        existing_tables = inspector.get_table_names()
+        logger.info(f"✅ Tablas después de la corrección: {existing_tables}")
         
-        logger.info("✅ Corrección de base de datos completada")
+        # Verificar estructura de la tabla casos
+        if 'casos' in existing_tables:
+            casos_columns = [col['name'] for col in inspector.get_columns('casos')]
+            logger.info(f"📋 Columnas en tabla casos: {casos_columns}")
+            
+            required_columns = ['comentarios', 'nivel_riesgo']
+            missing_columns = [col for col in required_columns if col not in casos_columns]
+            
+            if missing_columns:
+                logger.warning(f"⚠️ Columnas faltantes en casos: {missing_columns}")
+                # Las columnas deberían crearse automáticamente con Base.metadata.create_all
+            else:
+                logger.info("✅ Tabla casos tiene todas las columnas necesarias")
+        
+        # Crear usuarios y casos de prueba si no existen
+        try:
+            from app.db.seed import create_test_users, create_test_cases
+            
+            # Verificar si ya hay usuarios
+            with SessionLocal() as db:
+                from app.models.usuario import Usuario
+                user_count = db.query(Usuario).count()
+                
+                if user_count == 0:
+                    logger.info("👥 Creando usuarios de prueba...")
+                    create_test_users()
+                    logger.info("✅ Usuarios de prueba creados")
+                else:
+                    logger.info(f"👥 Ya existen {user_count} usuarios en la base de datos")
+                
+                # Verificar si ya hay casos
+                from app.models.caso import Caso
+                caso_count = db.query(Caso).count()
+                
+                if caso_count == 0:
+                    logger.info("📋 Creando casos de prueba...")
+                    create_test_cases()
+                    logger.info("✅ Casos de prueba creados")
+                else:
+                    logger.info(f"📋 Ya existen {caso_count} casos en la base de datos")
+                    
+        except Exception as e:
+            logger.warning(f"⚠️ Error creando datos de prueba: {e}")
+        
+        logger.info("✅ Corrección de base de datos completada exitosamente")
         return True
         
     except Exception as e:
-        logger.error(f"❌ Error crítico: {e}")
+        logger.error(f"❌ Error durante la corrección de base de datos: {e}")
         return False
 
 if __name__ == "__main__":
