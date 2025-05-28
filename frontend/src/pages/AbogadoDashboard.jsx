@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiClient } from '../api/apiClient';
+import apiClient from '../api/apiClient';
 
 const AbogadoDashboard = () => {
     const [casos, setCasos] = useState([]);
