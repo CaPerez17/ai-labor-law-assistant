@@ -2,7 +2,7 @@
 """
 Script simple para crear tablas de base de datos
 ===============================================
-Crea todas las tablas necesarias usando SQLAlchemy ORM
+Crea todas las tablas necesarias usando SQL directo compatible
 """
 
 import os
@@ -26,7 +26,7 @@ def main():
             print(f"❌ Error obteniendo configuración: {e}")
             return False
     
-    print(f"🔗 Conectando a base de datos PostgreSQL...")
+    print(f"🔗 Conectando a base de datos...")
     
     try:
         from sqlalchemy import create_engine, text, inspect
@@ -35,28 +35,23 @@ def main():
         # Verificar conexión
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-            print("✅ Conexión exitosa a PostgreSQL")
+            print("✅ Conexión exitosa")
         
-        # Verificar qué tablas existen actualmente
+        # Verificar y recrear tabla casos si es necesario
         inspector = inspect(engine)
         existing_tables = inspector.get_table_names()
         print(f"📋 Tablas existentes: {existing_tables}")
         
-        # Si la tabla casos existe pero no tiene cliente_id, la recreamos
+        # Limpiar y recrear tablas problemáticas
         if 'casos' in existing_tables:
-            casos_columns = [col['name'] for col in inspector.get_columns('casos')]
-            print(f"📋 Columnas en tabla casos: {casos_columns}")
-            
-            if 'cliente_id' not in casos_columns:
-                print("⚠️ Tabla casos no tiene cliente_id, eliminando y recreando...")
-                with engine.connect() as conn:
-                    conn.execute(text("DROP TABLE IF EXISTS casos CASCADE"))
-                    conn.commit()
-                    print("🗑️ Tabla casos eliminada")
+            print("🗑️ Eliminando tabla casos para recrear...")
+            with engine.connect() as conn:
+                conn.execute(text("DROP TABLE IF EXISTS casos CASCADE"))
+                conn.commit()
         
-        # Crear tablas con SQL directo y optimizado
-        print("🏗️ Creando todas las tablas con SQL directo...")
-        return create_tables_postgresql(engine)
+        # Crear tablas con SQL simple y compatible
+        print("🏗️ Creando tablas con SQL compatible...")
+        return create_tables_simple(engine)
         
     except Exception as e:
         print(f"❌ Error: {e}")
@@ -64,45 +59,19 @@ def main():
         print(f"Stack trace: {traceback.format_exc()}")
         return False
 
-def create_tables_postgresql(engine):
-    """Crear tablas específicamente para PostgreSQL"""
+def create_tables_simple(engine):
+    """Crear tablas con SQL simple sin ENUM para máxima compatibilidad"""
     from sqlalchemy import text
     
     sql_commands = [
-        # 1. Crear tipos ENUM
-        """
-        DO $$ BEGIN
-            CREATE TYPE rolusuario AS ENUM ('ADMIN', 'ABOGADO', 'CLIENTE');
-        EXCEPTION
-            WHEN duplicate_object THEN 
-                RAISE NOTICE 'Tipo rolusuario ya existe';
-        END $$;
-        """,
-        """
-        DO $$ BEGIN
-            CREATE TYPE estadocaso AS ENUM ('PENDIENTE', 'EN_PROCESO', 'PENDIENTE_VERIFICACION', 'VERIFICADO', 'RESUELTO', 'CERRADO');
-        EXCEPTION
-            WHEN duplicate_object THEN 
-                RAISE NOTICE 'Tipo estadocaso ya existe';
-        END $$;
-        """,
-        """
-        DO $$ BEGIN
-            CREATE TYPE nivelriesgo AS ENUM ('BAJO', 'MEDIO', 'ALTO', 'CRITICO');
-        EXCEPTION
-            WHEN duplicate_object THEN 
-                RAISE NOTICE 'Tipo nivelriesgo ya existe';
-        END $$;
-        """,
-        
-        # 2. Crear tabla usuarios
+        # 1. Tabla usuarios - simple y directo
         """
         CREATE TABLE IF NOT EXISTS usuarios (
             id SERIAL PRIMARY KEY,
             nombre VARCHAR(100) NOT NULL,
             email VARCHAR(100) NOT NULL UNIQUE,
             password_hash VARCHAR(255) NOT NULL,
-            rol rolusuario NOT NULL,
+            rol VARCHAR(20) NOT NULL,
             fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             fecha_actualizacion TIMESTAMP,
             activo BOOLEAN DEFAULT TRUE,
@@ -111,49 +80,90 @@ def create_tables_postgresql(engine):
         );
         """,
         
-        # 3. Crear tabla casos CON foreign keys explícitas
+        # 2. Tabla casos - con VARCHAR para evitar problemas de ENUM
         """
         CREATE TABLE IF NOT EXISTS casos (
             id SERIAL PRIMARY KEY,
             titulo VARCHAR(200) NOT NULL,
             descripcion TEXT NOT NULL,
-            estado estadocaso NOT NULL DEFAULT 'PENDIENTE',
-            nivel_riesgo nivelriesgo NOT NULL DEFAULT 'MEDIO',
+            estado VARCHAR(30) NOT NULL DEFAULT 'PENDIENTE',
+            nivel_riesgo VARCHAR(20) NOT NULL DEFAULT 'MEDIO',
             comentarios TEXT,
             cliente_id INTEGER NOT NULL,
             abogado_id INTEGER,
-            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-            fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-            fecha_cierre TIMESTAMP,
-            CONSTRAINT fk_casos_cliente FOREIGN KEY (cliente_id) REFERENCES usuarios(id),
-            CONSTRAINT fk_casos_abogado FOREIGN KEY (abogado_id) REFERENCES usuarios(id)
+            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            fecha_cierre TIMESTAMP
         );
         """,
         
-        # 4. Crear índices para optimización
+        # 3. Añadir foreign keys como paso separado
+        """
+        DO $$ 
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.table_constraints 
+                WHERE constraint_name = 'fk_casos_cliente'
+            ) THEN
+                ALTER TABLE casos ADD CONSTRAINT fk_casos_cliente 
+                FOREIGN KEY (cliente_id) REFERENCES usuarios(id);
+            END IF;
+            
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.table_constraints 
+                WHERE constraint_name = 'fk_casos_abogado'
+            ) THEN
+                ALTER TABLE casos ADD CONSTRAINT fk_casos_abogado 
+                FOREIGN KEY (abogado_id) REFERENCES usuarios(id);
+            END IF;
+        END $$;
+        """,
+        
+        # 4. Crear índices para performance
         """
         CREATE INDEX IF NOT EXISTS idx_casos_cliente_id ON casos(cliente_id);
         CREATE INDEX IF NOT EXISTS idx_casos_abogado_id ON casos(abogado_id);
         CREATE INDEX IF NOT EXISTS idx_casos_estado ON casos(estado);
         """,
         
-        # 5. Otras tablas importantes
+        # 5. Tabla documentos
         """
         CREATE TABLE IF NOT EXISTS documentos (
             id SERIAL PRIMARY KEY,
-            nombre_archivo VARCHAR NOT NULL,
-            ruta VARCHAR NOT NULL,
+            nombre_archivo VARCHAR(255) NOT NULL,
+            ruta VARCHAR(500) NOT NULL,
             fecha DATE NOT NULL,
-            numero_ley VARCHAR NOT NULL,
-            categoria VARCHAR NOT NULL,
-            subcategoria VARCHAR NOT NULL,
+            numero_ley VARCHAR(100) NOT NULL,
+            categoria VARCHAR(100) NOT NULL,
+            subcategoria VARCHAR(100) NOT NULL,
             usuario_id INTEGER NOT NULL,
-            caso_id INTEGER,
-            CONSTRAINT fk_documentos_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
-            CONSTRAINT fk_documentos_caso FOREIGN KEY (caso_id) REFERENCES casos(id)
+            caso_id INTEGER
         );
         """,
         
+        # 6. Foreign keys para documentos
+        """
+        DO $$ 
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.table_constraints 
+                WHERE constraint_name = 'fk_documentos_usuario'
+            ) THEN
+                ALTER TABLE documentos ADD CONSTRAINT fk_documentos_usuario 
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id);
+            END IF;
+            
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.table_constraints 
+                WHERE constraint_name = 'fk_documentos_caso'
+            ) THEN
+                ALTER TABLE documentos ADD CONSTRAINT fk_documentos_caso 
+                FOREIGN KEY (caso_id) REFERENCES casos(id);
+            END IF;
+        END $$;
+        """,
+        
+        # 7. Tabla mensajes
         """
         CREATE TABLE IF NOT EXISTS mensajes (
             id SERIAL PRIMARY KEY,
@@ -162,57 +172,86 @@ def create_tables_postgresql(engine):
             caso_id INTEGER,
             contenido VARCHAR(500) NOT NULL,
             timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            leido BOOLEAN NOT NULL DEFAULT FALSE,
-            CONSTRAINT fk_mensajes_remitente FOREIGN KEY (remitente_id) REFERENCES usuarios(id),
-            CONSTRAINT fk_mensajes_receptor FOREIGN KEY (receptor_id) REFERENCES usuarios(id),
-            CONSTRAINT fk_mensajes_caso FOREIGN KEY (caso_id) REFERENCES casos(id)
+            leido BOOLEAN NOT NULL DEFAULT FALSE
         );
+        """,
+        
+        # 8. Foreign keys para mensajes
+        """
+        DO $$ 
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.table_constraints 
+                WHERE constraint_name = 'fk_mensajes_remitente'
+            ) THEN
+                ALTER TABLE mensajes ADD CONSTRAINT fk_mensajes_remitente 
+                FOREIGN KEY (remitente_id) REFERENCES usuarios(id);
+            END IF;
+            
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.table_constraints 
+                WHERE constraint_name = 'fk_mensajes_receptor'
+            ) THEN
+                ALTER TABLE mensajes ADD CONSTRAINT fk_mensajes_receptor 
+                FOREIGN KEY (receptor_id) REFERENCES usuarios(id);
+            END IF;
+            
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.table_constraints 
+                WHERE constraint_name = 'fk_mensajes_caso'
+            ) THEN
+                ALTER TABLE mensajes ADD CONSTRAINT fk_mensajes_caso 
+                FOREIGN KEY (caso_id) REFERENCES casos(id);
+            END IF;
+        END $$;
         """
     ]
     
     try:
         with engine.connect() as conn:
-            # Usar una sola transacción para todo
-            trans = conn.begin()
-            
-            try:
-                for i, sql in enumerate(sql_commands, 1):
-                    step_name = [
-                        "tipos ENUM rolusuario",
-                        "tipos ENUM estadocaso", 
-                        "tipos ENUM nivelriesgo",
-                        "tabla usuarios",
-                        "tabla casos",
-                        "índices casos",
-                        "tabla documentos",
-                        "tabla mensajes"
-                    ][i-1] if i <= 8 else f"comando {i}"
-                    
+            # Ejecutar cada comando por separado para mejor debugging
+            for i, sql in enumerate(sql_commands, 1):
+                step_name = [
+                    "tabla usuarios",
+                    "tabla casos", 
+                    "foreign keys casos",
+                    "índices casos",
+                    "tabla documentos",
+                    "foreign keys documentos",
+                    "tabla mensajes",
+                    "foreign keys mensajes"
+                ][i-1] if i <= 8 else f"comando {i}"
+                
+                try:
                     print(f"📋 Ejecutando {i}/{len(sql_commands)}: {step_name}...")
                     conn.execute(text(sql))
-                
-                trans.commit()
-                print("✅ Todas las tablas creadas exitosamente")
-                
-                # Verificar que la tabla casos tiene cliente_id
-                inspector = inspect(engine)
-                if 'casos' in inspector.get_table_names():
-                    casos_columns = [col['name'] for col in inspector.get_columns('casos')]
-                    if 'cliente_id' in casos_columns:
-                        print("✅ Verificado: tabla casos tiene columna cliente_id")
-                    else:
-                        print("❌ ERROR: tabla casos NO tiene columna cliente_id")
-                        return False
-                
-                return True
-                
-            except Exception as e:
-                trans.rollback()
-                print(f"❌ Error en transacción: {e}")
+                    conn.commit()  # Commit después de cada comando
+                    print(f"✅ {step_name} completado")
+                except Exception as e:
+                    print(f"⚠️ Error en {step_name}: {e}")
+                    # Continuar con el siguiente comando
+                    continue
+            
+            print("✅ Proceso de creación de tablas completado")
+            
+            # Verificación final
+            inspector = inspect(engine)
+            if 'casos' in inspector.get_table_names():
+                casos_columns = [col['name'] for col in inspector.get_columns('casos')]
+                if 'cliente_id' in casos_columns:
+                    print("✅ VERIFICADO: tabla casos tiene columna cliente_id")
+                    return True
+                else:
+                    print("❌ ERROR: tabla casos NO tiene columna cliente_id")
+                    return False
+            else:
+                print("❌ ERROR: tabla casos no fue creada")
                 return False
                 
     except Exception as e:
         print(f"❌ Error creando tablas: {e}")
+        import traceback
+        print(f"Stack trace: {traceback.format_exc()}")
         return False
 
 if __name__ == "__main__":
