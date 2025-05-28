@@ -19,25 +19,44 @@ echo "🔍 Verificando configuración..."
 check_env_var "DATABASE_URL" || echo "Base de datos no configurada"
 check_env_var "SECRET_KEY" || echo "Clave secreta no configurada"
 
-echo "🚀 Iniciando LegalAssista API en puerto ${PORT:-10000}"
+echo "🚀 Iniciando LegalAssista Backend..."
 
-# Paso 1: Crear tablas básicas
-echo "🏗️ Creando tablas de base de datos..."
-python scripts/create_db_tables.py || echo "⚠️ Error creando tablas básicas"
+# Ejecutar scripts de inicialización de base de datos en orden
+echo "🗄️ Configurando base de datos..."
 
-# Paso 2: Ejecutar corrección completa de base de datos
-echo "🔧 Ejecutando corrección completa de base de datos..."
-python scripts/fix_production_db.py || echo "⚠️ Error en corrección avanzada de DB"
-
-# Ejecutar comando pasado como argumento (generalmente seed + uvicorn)
-if [ $# -eq 0 ]; then
-    # Si no se pasan argumentos, ejecutar configuración por defecto
-    echo "📋 Inicializando datos de prueba..."
-    python scripts/seed.py || echo "⚠️ Advertencia: Error en seed de datos"
-    
-    echo "🌐 Iniciando servidor web..."
-    uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}
+# 1. Crear tablas básicas (compatible SQLite/PostgreSQL)
+echo "📋 Paso 1: Creando tablas básicas..."
+if python scripts/create_db_tables.py; then
+    echo "✅ Tablas básicas creadas exitosamente"
 else
-    # Ejecutar los comandos pasados como argumentos
-    exec "$@"
-fi 
+    echo "⚠️ Error creando tablas básicas"
+    # Si falla, intentar corrección agresiva para PostgreSQL
+    echo "🚨 Intentando corrección agresiva para PostgreSQL..."
+    if python scripts/fix_production_db.py; then
+        echo "✅ Corrección agresiva completada"
+    else
+        echo "❌ Error en corrección agresiva"
+        # Continuar de todas formas
+    fi
+fi
+
+# 2. Corregir cualquier problema avanzado de PostgreSQL (solo si es necesario)
+echo "🔧 Paso 2: Verificando estructura avanzada..."
+if python scripts/fix_production_db.py; then
+    echo "✅ Estructura verificada/corregida"
+else
+    echo "⚠️ Error en verificación avanzada (continuando...)"
+fi
+
+# 3. Crear usuarios y datos iniciales
+echo "👥 Paso 3: Creando usuarios iniciales..."
+if python scripts/seed.py; then
+    echo "✅ Usuarios iniciales creados"
+else
+    echo "⚠️ Error creando usuarios iniciales (continuando...)"
+fi
+
+echo "🎯 Iniciando servidor FastAPI..."
+
+# Iniciar el servidor FastAPI
+exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} 

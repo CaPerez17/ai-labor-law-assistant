@@ -7,12 +7,11 @@ Define los esquemas de Pydantic para la validación y serialización de casos.
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
-from app.models.caso import EstadoCaso, NivelRiesgo
 
 class CasoBase(BaseModel):
     titulo: str = Field(..., min_length=1, max_length=200)
     descripcion: str = Field(..., min_length=1)
-    nivel_riesgo: Optional[NivelRiesgo] = NivelRiesgo.MEDIO
+    nivel_riesgo: Optional[str] = "MEDIO"
 
 class CasoCreate(CasoBase):
     cliente_id: int
@@ -25,7 +24,7 @@ class CasoUpdate(BaseModel):
 
 class CasoResponse(CasoBase):
     id: int
-    estado: EstadoCaso
+    estado: str
     comentarios: Optional[str] = None
     cliente_id: int
     abogado_id: Optional[int] = None

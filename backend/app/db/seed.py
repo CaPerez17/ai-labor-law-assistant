@@ -12,7 +12,7 @@ sys.path.append(str(backend_dir))
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal, engine
 from app.models.usuario import Usuario, RolUsuario
-from app.models.caso import Caso, EstadoCaso, NivelRiesgo
+from app.models.caso import Caso
 from app.core.security import get_password_hash
 from app.db.base import Base
 import logging
@@ -136,13 +136,13 @@ def create_test_cases():
             logger.warning("⚠️ No se encontraron usuarios necesarios para crear casos")
             return
         
-        # Casos de prueba
+        # Casos de prueba - usando strings directamente
         casos_dummy = [
             {
                 "titulo": "Consulta sobre contrato laboral",
                 "descripcion": "Cliente solicita revisión de contrato de trabajo",
-                "estado": EstadoCaso.PENDIENTE,
-                "nivel_riesgo": NivelRiesgo.MEDIO,
+                "estado": "PENDIENTE",  # String directo
+                "nivel_riesgo": "MEDIO",  # String directo
                 "cliente_id": cliente.id,
                 "abogado_id": abogado.id,
                 "comentarios": "Caso prioritario para revisión"
@@ -150,8 +150,8 @@ def create_test_cases():
             {
                 "titulo": "Reclamación de horas extras",
                 "descripcion": "Trabajador no ha recibido pago por horas extras trabajadas",
-                "estado": EstadoCaso.EN_PROCESO,
-                "nivel_riesgo": NivelRiesgo.BAJO,
+                "estado": "EN_PROCESO",  # String directo
+                "nivel_riesgo": "BAJO",  # String directo
                 "cliente_id": cliente.id,
                 "abogado_id": abogado.id,
                 "comentarios": "Revisar contratos y comprobantes"
@@ -159,8 +159,8 @@ def create_test_cases():
             {
                 "titulo": "Despido improcedente",
                 "descripcion": "Cliente fue despedido sin justa causa",
-                "estado": EstadoCaso.PENDIENTE_VERIFICACION,
-                "nivel_riesgo": NivelRiesgo.ALTO,
+                "estado": "PENDIENTE_VERIFICACION",  # String directo
+                "nivel_riesgo": "ALTO",  # String directo
                 "cliente_id": cliente.id,
                 "abogado_id": abogado.id,
                 "comentarios": "Caso urgente - revisar documentación completa"
