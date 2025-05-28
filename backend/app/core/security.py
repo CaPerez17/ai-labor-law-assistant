@@ -8,22 +8,18 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.usuario import Usuario
-import os
 import logging
 
 # Configurar logger
 logger = logging.getLogger(__name__)
 
-# Asegurarse de que la SECRET_KEY esté presente y sea segura
-SECRET_KEY = os.environ.get("SECRET_KEY", settings.SECRET_KEY)
-if not SECRET_KEY or SECRET_KEY == "tu_clave_secreta_aqui":
-    logger.warning("⚠️ ADVERTENCIA: Se está usando una clave secreta predeterminada. Configura SECRET_KEY para mayor seguridad.")
-    # Generar una clave aleatoria para esta sesión
-    import secrets
-    SECRET_KEY = secrets.token_hex(32)
-    logger.info("Se ha generado una clave secreta temporal para esta sesión")
-
+# Usar directamente desde settings, que ya maneja os.environ.get y el default
+SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
+
+# Advertir si la SECRET_KEY es la predeterminada y potencialmente insegura
+if SECRET_KEY == "tu_clave_secreta_aqui":
+    logger.warning("⚠️ ADVERTENCIA: Se está usando una clave secreta predeterminada. Configura una variable de entorno SECRET_KEY segura para producción.")
 
 # Configurar OAuth2
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
