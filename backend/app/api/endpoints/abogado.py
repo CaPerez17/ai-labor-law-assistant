@@ -12,10 +12,10 @@ import logging
 from app.schemas.abogado import (
     CasoAbogado,
     UpdateCasoInput,
-    CasoResponse,
-    EstadoCaso,
-    NivelRiesgo
+    EstadoCaso as AbogadoEstadoCaso,
+    NivelRiesgo as AbogadoNivelRiesgo
 )
+from app.schemas.caso import CasoResponse
 from app.services.abogado_service import AbogadoService
 from app.db.session import get_db
 from app.models.usuario import Usuario
