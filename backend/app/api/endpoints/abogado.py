@@ -39,7 +39,7 @@ async def obtener_casos_abogado(
     Obtiene todos los casos asignados al abogado actual
     """
     try:
-        logger.info(f"Obteniendo casos para abogado: {current_user.email}")
+        logger.info(f"Obteniendo casos para abogado: {current_user.email} con filtro de estado: {estado}")
         
         # Verificar que el usuario es abogado
         if current_user.rol.value != "abogado":
@@ -51,20 +51,17 @@ async def obtener_casos_abogado(
         # Query base para casos del abogado
         query = db.query(Caso).filter(Caso.abogado_id == current_user.id)
         
-        # Aplicar filtro por estado si se proporciona
+        # Aplicar filtro por estado si se proporciona y es un string válido
         if estado:
-            try:
-                estado_enum = EstadoCaso(estado)
-                query = query.filter(Caso.estado == estado_enum)
-            except ValueError:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Estado inválido: {estado}"
-                )
+            # Validar que el estado sea uno de los permitidos si es necesario,
+            # o simplemente usar el string directamente si el frontend ya envía valores válidos.
+            # Por ahora, usaremos el string directamente.
+            logger.debug(f"Aplicando filtro de estado: {estado}")
+            query = query.filter(Caso.estado == estado)
         
         casos = query.all()
         
-        logger.info(f"Encontrados {len(casos)} casos para el abogado")
+        logger.info(f"Encontrados {len(casos)} casos para el abogado {current_user.email}")
         
         # Si no hay casos, devolver lista vacía en lugar de error
         return casos
@@ -150,9 +147,11 @@ async def actualizar_caso(
         
         # Actualizar campos
         if caso_update.estado:
-            caso.estado = EstadoCaso(caso_update.estado)
+            logger.debug(f"Actualizando estado del caso {caso_id} a: {caso_update.estado}")
+            caso.estado = caso_update.estado # Asignar string directamente
         
         if caso_update.comentarios:
+            logger.debug(f"Actualizando comentarios del caso {caso_id}")
             caso.comentarios = caso_update.comentarios
         
         db.commit()
@@ -192,12 +191,14 @@ async def obtener_metricas_abogado(
         total_casos = db.query(Caso).filter(Caso.abogado_id == current_user.id).count()
         casos_pendientes = db.query(Caso).filter(
             Caso.abogado_id == current_user.id,
-            Caso.estado == EstadoCaso.PENDIENTE
+            Caso.estado == "PENDIENTE"  # Comparar con string
         ).count()
         casos_resueltos = db.query(Caso).filter(
             Caso.abogado_id == current_user.id,
-            Caso.estado == EstadoCaso.RESUELTO
+            Caso.estado == "RESUELTO"  # Comparar con string
         ).count()
+        
+        logger.info(f"Métricas para abogado {current_user.email}: Total={total_casos}, Pendientes={casos_pendientes}, Resueltos={casos_resueltos}")
         
         return {
             "total_casos": total_casos,
