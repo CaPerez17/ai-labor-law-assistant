@@ -35,7 +35,7 @@ def create_tables_with_orm():
         return False
 
 def create_tables_with_sql():
-    """Método alternativo usando SQL directo"""
+    """Método alternativo usando SQL directo optimizado para PostgreSQL"""
     try:
         print("🔄 Intentando método alternativo con SQL directo...")
         from sqlalchemy import create_engine, text
@@ -52,47 +52,168 @@ def create_tables_with_sql():
         
         engine = create_engine(database_url)
         
-        # SQL básico para crear tablas principales
-        sql_commands = [
-            """
-            CREATE TABLE IF NOT EXISTS usuarios (
-                id SERIAL PRIMARY KEY,
-                nombre VARCHAR(100) NOT NULL,
-                email VARCHAR(100) NOT NULL UNIQUE,
-                password_hash VARCHAR(255) NOT NULL,
-                rol VARCHAR(10) NOT NULL,
-                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                fecha_actualizacion TIMESTAMP,
-                activo BOOLEAN DEFAULT TRUE,
-                recibir_emails BOOLEAN DEFAULT TRUE,
-                fecha_registro TIMESTAMP
-            )
-            """,
-            """
-            CREATE TABLE IF NOT EXISTS casos (
-                id SERIAL PRIMARY KEY,
-                titulo VARCHAR(200) NOT NULL,
-                descripcion TEXT NOT NULL,
-                estado VARCHAR(25) NOT NULL DEFAULT 'PENDIENTE',
-                nivel_riesgo VARCHAR(10) NOT NULL DEFAULT 'MEDIO',
-                comentarios TEXT,
-                cliente_id INTEGER,
-                abogado_id INTEGER,
-                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                fecha_cierre TIMESTAMP
-            )
-            """
-        ]
+        # Determinar si es PostgreSQL o SQLite
+        is_postgres = "postgresql" in database_url
+        
+        if is_postgres:
+            # SQL para PostgreSQL
+            sql_commands = [
+                # Crear tipos ENUM para PostgreSQL
+                """
+                DO $$ BEGIN
+                    CREATE TYPE rolusuario AS ENUM ('ADMIN', 'ABOGADO', 'CLIENTE');
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;
+                """,
+                """
+                DO $$ BEGIN
+                    CREATE TYPE estadocaso AS ENUM ('PENDIENTE', 'EN_PROCESO', 'PENDIENTE_VERIFICACION', 'VERIFICADO', 'RESUELTO', 'CERRADO');
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;
+                """,
+                """
+                DO $$ BEGIN
+                    CREATE TYPE nivelriesgo AS ENUM ('BAJO', 'MEDIO', 'ALTO', 'CRITICO');
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;
+                """,
+                # Tabla usuarios
+                """
+                CREATE TABLE IF NOT EXISTS usuarios (
+                    id SERIAL PRIMARY KEY,
+                    nombre VARCHAR(100) NOT NULL,
+                    email VARCHAR(100) NOT NULL UNIQUE,
+                    password_hash VARCHAR(255) NOT NULL,
+                    rol rolusuario NOT NULL,
+                    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    fecha_actualizacion TIMESTAMP,
+                    activo BOOLEAN DEFAULT TRUE,
+                    recibir_emails BOOLEAN DEFAULT TRUE,
+                    fecha_registro TIMESTAMP
+                )
+                """,
+                # Tabla casos
+                """
+                CREATE TABLE IF NOT EXISTS casos (
+                    id SERIAL PRIMARY KEY,
+                    titulo VARCHAR(200) NOT NULL,
+                    descripcion TEXT NOT NULL,
+                    estado estadocaso NOT NULL DEFAULT 'PENDIENTE',
+                    nivel_riesgo nivelriesgo NOT NULL DEFAULT 'MEDIO',
+                    comentarios TEXT,
+                    cliente_id INTEGER NOT NULL REFERENCES usuarios(id),
+                    abogado_id INTEGER REFERENCES usuarios(id),
+                    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                    fecha_cierre TIMESTAMP
+                )
+                """,
+                # Tabla documentos
+                """
+                CREATE TABLE IF NOT EXISTS documentos (
+                    id SERIAL PRIMARY KEY,
+                    nombre_archivo VARCHAR NOT NULL,
+                    ruta VARCHAR NOT NULL,
+                    fecha DATE NOT NULL,
+                    numero_ley VARCHAR NOT NULL,
+                    categoria VARCHAR NOT NULL,
+                    subcategoria VARCHAR NOT NULL,
+                    usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+                    caso_id INTEGER REFERENCES casos(id)
+                )
+                """,
+                # Tabla notificaciones
+                """
+                CREATE TABLE IF NOT EXISTS notificaciones (
+                    id SERIAL PRIMARY KEY,
+                    usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+                    tipo VARCHAR(12) NOT NULL,
+                    titulo VARCHAR NOT NULL,
+                    mensaje VARCHAR NOT NULL,
+                    leido BOOLEAN DEFAULT FALSE,
+                    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    fecha_lectura TIMESTAMP,
+                    datos_adicionales VARCHAR
+                )
+                """,
+                # Tabla mensajes
+                """
+                CREATE TABLE IF NOT EXISTS mensajes (
+                    id SERIAL PRIMARY KEY,
+                    remitente_id INTEGER NOT NULL REFERENCES usuarios(id),
+                    receptor_id INTEGER NOT NULL REFERENCES usuarios(id),
+                    caso_id INTEGER REFERENCES casos(id),
+                    contenido VARCHAR(500) NOT NULL,
+                    timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    leido BOOLEAN NOT NULL DEFAULT FALSE
+                )
+                """,
+                # Tabla facturas
+                """
+                CREATE TABLE IF NOT EXISTS facturas (
+                    id SERIAL PRIMARY KEY,
+                    usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+                    servicio VARCHAR(255) NOT NULL,
+                    monto FLOAT NOT NULL,
+                    estado VARCHAR(14) NOT NULL,
+                    fecha_emision TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    fecha_pago TIMESTAMP,
+                    numero_factura VARCHAR(20) NOT NULL UNIQUE,
+                    descripcion VARCHAR(500),
+                    metodo_pago VARCHAR(50),
+                    mercadopago_id VARCHAR(100),
+                    mercadopago_status VARCHAR(50),
+                    mercadopago_external_reference VARCHAR(100),
+                    mercadopago_payment_id VARCHAR(100)
+                )
+                """
+            ]
+        else:
+            # SQL para SQLite
+            sql_commands = [
+                """
+                CREATE TABLE IF NOT EXISTS usuarios (
+                    id INTEGER PRIMARY KEY,
+                    nombre VARCHAR(100) NOT NULL,
+                    email VARCHAR(100) NOT NULL UNIQUE,
+                    password_hash VARCHAR(255) NOT NULL,
+                    rol VARCHAR(10) NOT NULL,
+                    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    fecha_actualizacion TIMESTAMP,
+                    activo BOOLEAN DEFAULT TRUE,
+                    recibir_emails BOOLEAN DEFAULT TRUE,
+                    fecha_registro TIMESTAMP
+                )
+                """,
+                """
+                CREATE TABLE IF NOT EXISTS casos (
+                    id INTEGER PRIMARY KEY,
+                    titulo VARCHAR(200) NOT NULL,
+                    descripcion TEXT NOT NULL,
+                    estado VARCHAR(25) NOT NULL DEFAULT 'PENDIENTE',
+                    nivel_riesgo VARCHAR(10) NOT NULL DEFAULT 'MEDIO',
+                    comentarios TEXT,
+                    cliente_id INTEGER NOT NULL,
+                    abogado_id INTEGER,
+                    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                    fecha_cierre TIMESTAMP
+                )
+                """
+            ]
         
         with engine.connect() as conn:
-            # Ajustar para SQLite si es necesario
-            if "sqlite" in str(engine.url).lower():
-                sql_commands = [cmd.replace("SERIAL", "INTEGER") for cmd in sql_commands]
-            
-            for sql in sql_commands:
-                print(f"📋 Ejecutando: {sql.split()[2]} {sql.split()[5]}...")
-                conn.execute(text(sql))
+            for i, sql in enumerate(sql_commands, 1):
+                try:
+                    table_name = "comando" if is_postgres and i <= 3 else sql.split()[5] if len(sql.split()) > 5 else f"paso-{i}"
+                    print(f"📋 Ejecutando {i}/{len(sql_commands)}: {table_name}...")
+                    conn.execute(text(sql))
+                except Exception as e:
+                    print(f"⚠️ Error en comando {i}: {e}")
+                    # Continuar con los siguientes comandos
             
             conn.commit()
             print("✅ Tablas creadas con SQL directo")

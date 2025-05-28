@@ -86,6 +86,9 @@ def create_initial_users():
                 print(f"\nSe han creado {users_created} usuarios iniciales.")
             else:
                 print("\nNo se ha creado ningún usuario nuevo. Todos ya existían.")
+            
+            # Crear casos de prueba solo si los usuarios existen
+            create_sample_cases(db)
                 
         except Exception as e:
             db.rollback()
@@ -99,6 +102,69 @@ def create_initial_users():
         # Usar método alternativo más simple
         create_users_simple()
 
+def create_sample_cases(db):
+    """Crear casos de prueba si los usuarios existen"""
+    try:
+        from app.models.caso import Caso, EstadoCaso, NivelRiesgo
+        from app.models.usuario import Usuario, RolUsuario
+        
+        # Verificar si ya hay casos
+        caso_count = db.query(Caso).count()
+        if caso_count > 0:
+            print(f"Ya existen {caso_count} casos en la base de datos")
+            return
+        
+        # Buscar usuarios para asignar casos
+        abogado = db.query(Usuario).filter(Usuario.rol == RolUsuario.ABOGADO).first()
+        cliente = db.query(Usuario).filter(Usuario.rol == RolUsuario.CLIENTE).first()
+        
+        if not abogado or not cliente:
+            print("⚠️ No se encontraron usuarios abogado o cliente, saltando creación de casos")
+            return
+        
+        # Crear casos de prueba
+        casos_prueba = [
+            {
+                "titulo": "Consulta sobre contrato laboral",
+                "descripcion": "Cliente solicita revisión de contrato de trabajo",
+                "estado": EstadoCaso.PENDIENTE,
+                "nivel_riesgo": NivelRiesgo.MEDIO,
+                "comentarios": "Caso prioritario para revisión",
+                "cliente_id": cliente.id,
+                "abogado_id": abogado.id
+            },
+            {
+                "titulo": "Reclamación de horas extras",
+                "descripcion": "Trabajador no ha recibido pago por horas extras trabajadas",
+                "estado": EstadoCaso.EN_PROCESO,
+                "nivel_riesgo": NivelRiesgo.BAJO,
+                "comentarios": "Revisar contratos y comprobantes",
+                "cliente_id": cliente.id,
+                "abogado_id": abogado.id
+            },
+            {
+                "titulo": "Despido improcedente",
+                "descripcion": "Cliente fue despedido sin justa causa",
+                "estado": EstadoCaso.PENDIENTE_VERIFICACION,
+                "nivel_riesgo": NivelRiesgo.ALTO,
+                "comentarios": "Caso urgente - revisar documentación completa",
+                "cliente_id": cliente.id,
+                "abogado_id": abogado.id
+            }
+        ]
+        
+        for caso_data in casos_prueba:
+            nuevo_caso = Caso(**caso_data)
+            db.add(nuevo_caso)
+        
+        db.commit()
+        print(f"✅ {len(casos_prueba)} casos de prueba creados exitosamente")
+        
+    except Exception as e:
+        print(f"⚠️ Error creando casos de prueba: {e}")
+        # No hacer rollback completo, solo para casos
+        pass
+
 def create_users_simple():
     """Método alternativo para crear usuarios usando SQL directo"""
     try:
@@ -108,7 +174,24 @@ def create_users_simple():
         print("Usando método alternativo para crear usuarios...")
         engine = create_engine(settings.DATABASE_URL)
         
+        # Verificar si las tablas existen
+        with engine.connect() as conn:
+            # Verificar tabla usuarios
+            try:
+                result = conn.execute(text("SELECT COUNT(*) FROM usuarios"))
+                user_count = result.scalar()
+                print(f"📊 Usuarios existentes: {user_count}")
+                
+                if user_count > 0:
+                    print("👥 Ya existen usuarios, saltando creación")
+                    return
+                    
+            except Exception as e:
+                print(f"❌ Error verificando usuarios: {e}")
+                return
+        
         # Usuarios con passwords hasheados (bcrypt)
+        # Passwords: admin123, abogado123, cliente123
         usuarios_data = [
             ("Admin Test", "admin@legalassista.com", "$2b$12$WOqPY5DBErpluJppclVU0.dm.U1zTWuTKc19k.IHTCgFd9C5ag/ie", "ADMIN"),
             ("Abogado Test", "abogado@legalassista.com", "$2b$12$WOqPY5DBErpluJppclVU0.dm.U1zTWuTKc19k.IHTCgFd9C5ag/ie", "ABOGADO"),
