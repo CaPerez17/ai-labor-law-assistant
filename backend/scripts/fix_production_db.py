@@ -71,6 +71,11 @@ def fix_postgresql_aggressive(engine):
         "DROP TABLE IF EXISTS feedback_usuarios CASCADE;",
         "DROP TABLE IF EXISTS metricas_uso CASCADE;",
         "DROP TABLE IF EXISTS calificaciones CASCADE;",
+        "DROP TABLE IF EXISTS documento CASCADE;",
+        "DROP TABLE IF EXISTS feedbackusuario CASCADE;",
+        "DROP TABLE IF EXISTS metricauso CASCADE;",
+        "DROP TABLE IF EXISTS calificacion CASCADE;",
+        "DROP TABLE IF EXISTS legal_documents CASCADE;",
         "DROP TABLE IF EXISTS alembic_version CASCADE;",
         
         # 2. Eliminar tipos ENUM explícitamente
@@ -358,27 +363,27 @@ def recreate_structure(engine):
                         continue
                 
                 print("✅ Estructura recreada completamente")
-                
-                # Verificación final
-                from sqlalchemy import inspect
-                inspector = inspect(engine)
-                tables_created = inspector.get_table_names()
-                print(f"📋 Tablas finales: {tables_created}")
-                
-                # Verificar tabla casos específicamente
-                if 'casos' in tables_created:
-                    casos_columns = [col['name'] for col in inspector.get_columns('casos')]
-                    print(f"📋 Columnas en tabla casos: {casos_columns}")
-                    if 'cliente_id' in casos_columns and 'estado' in casos_columns:
-                        print("✅ VERIFICADO: tabla casos correcta con VARCHAR estado")
-                        return True
-                    else:
-                        print("❌ ERROR: tabla casos no tiene estructura correcta")
-                        return False
-                else:
-                    print("❌ ERROR: tabla casos no fue creada")
-                    return False
-                
+        
+        # Fuera del bloque de transacción: verificación final
+        from sqlalchemy import inspect
+        inspector = inspect(engine)
+        tables_created = inspector.get_table_names()
+        print(f"📋 Tablas finales: {tables_created}")
+        
+        # Verificar tabla casos específicamente
+        if 'casos' in tables_created:
+            casos_columns = [col['name'] for col in inspector.get_columns('casos')]
+            print(f"📋 Columnas en tabla casos: {casos_columns}")
+            if 'cliente_id' in casos_columns and 'estado' in casos_columns:
+                print("✅ VERIFICADO: tabla casos correcta con VARCHAR estado")
+                return True
+            else:
+                print("❌ ERROR: tabla casos no tiene estructura correcta")
+                return False
+        else:
+            print("❌ ERROR: tabla casos no fue creada")
+            return False
+        
     except Exception as e:
         print(f"❌ Error recreando estructura: {e}")
         import traceback
