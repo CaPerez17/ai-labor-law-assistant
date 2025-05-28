@@ -105,7 +105,7 @@ def create_initial_users():
 def create_sample_cases(db):
     """Crear casos de prueba si los usuarios existen"""
     try:
-        from app.models.caso import Caso, EstadoCaso, NivelRiesgo
+        from app.models.caso import Caso
         from app.models.usuario import Usuario, RolUsuario
         
         # Verificar si ya hay casos
@@ -122,13 +122,13 @@ def create_sample_cases(db):
             print("⚠️ No se encontraron usuarios abogado o cliente, saltando creación de casos")
             return
         
-        # Crear casos de prueba
+        # Crear casos de prueba usando strings directamente
         casos_prueba = [
             {
                 "titulo": "Consulta sobre contrato laboral",
                 "descripcion": "Cliente solicita revisión de contrato de trabajo",
-                "estado": EstadoCaso.PENDIENTE,
-                "nivel_riesgo": NivelRiesgo.MEDIO,
+                "estado": "PENDIENTE",  # String directo
+                "nivel_riesgo": "MEDIO",  # String directo
                 "comentarios": "Caso prioritario para revisión",
                 "cliente_id": cliente.id,
                 "abogado_id": abogado.id
@@ -136,8 +136,8 @@ def create_sample_cases(db):
             {
                 "titulo": "Reclamación de horas extras",
                 "descripcion": "Trabajador no ha recibido pago por horas extras trabajadas",
-                "estado": EstadoCaso.EN_PROCESO,
-                "nivel_riesgo": NivelRiesgo.BAJO,
+                "estado": "EN_PROCESO",  # String directo
+                "nivel_riesgo": "BAJO",  # String directo
                 "comentarios": "Revisar contratos y comprobantes",
                 "cliente_id": cliente.id,
                 "abogado_id": abogado.id
@@ -145,8 +145,8 @@ def create_sample_cases(db):
             {
                 "titulo": "Despido improcedente",
                 "descripcion": "Cliente fue despedido sin justa causa",
-                "estado": EstadoCaso.PENDIENTE_VERIFICACION,
-                "nivel_riesgo": NivelRiesgo.ALTO,
+                "estado": "PENDIENTE_VERIFICACION",  # String directo
+                "nivel_riesgo": "ALTO",  # String directo
                 "comentarios": "Caso urgente - revisar documentación completa",
                 "cliente_id": cliente.id,
                 "abogado_id": abogado.id
