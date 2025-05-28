@@ -91,27 +91,37 @@ async def get_current_user(
     try:
         payload = verify_token(token)
         if payload is None:
+            logger.error("Fallo en verify_token, payload es None")
             raise credentials_exception
+            
+        logger.debug(f"Payload del token: {payload}") # Log para ver el payload completo
             
         # El token puede contener 'sub' como ID numérico o como correo electrónico
         user_id = payload.get("sub")
         if user_id is None:
+            logger.error("El campo 'sub' no está en el payload del token")
             raise credentials_exception
+            
+        logger.debug(f"Valor de 'sub' en el token: {user_id}, tipo: {type(user_id)}")
             
         # Determinar si 'sub' es un ID numérico o un correo
         if isinstance(user_id, int) or (isinstance(user_id, str) and user_id.isdigit()):
             # Es un ID numérico
             logger.debug(f"Buscando usuario por ID: {user_id}")
             user = db.query(Usuario).filter(Usuario.id == int(user_id)).first()
+            logger.debug(f"Usuario encontrado por ID: {user.email if user else 'No encontrado'}")
         else:
             # Es un correo electrónico
             logger.debug(f"Buscando usuario por email: {user_id}")
             user = db.query(Usuario).filter(Usuario.email == user_id).first()
+            logger.debug(f"Usuario encontrado por email: {user.email if user else 'No encontrado'}")
             
     except JWTError:
+        logger.error("Excepción JWTError durante la verificación del token")
         raise credentials_exception
         
     if user is None:
+        logger.error("Usuario no encontrado en la DB con el 'sub' proporcionado")
         raise credentials_exception
         
     return user
@@ -132,27 +142,41 @@ async def get_current_active_user(
     try:
         payload = verify_token(token)
         if payload is None:
+            logger.error("Fallo en verify_token, payload es None para get_current_active_user")
             raise credentials_exception
+            
+        logger.debug(f"Payload del token (active_user): {payload}") # Log para ver el payload completo
             
         # El token puede contener 'sub' como ID numérico o como correo electrónico
         user_id = payload.get("sub")
         if user_id is None:
+            logger.error("El campo 'sub' no está en el payload del token para get_current_active_user")
             raise credentials_exception
+            
+        logger.debug(f"Valor de 'sub' en el token (active_user): {user_id}, tipo: {type(user_id)}")
             
         # Determinar si 'sub' es un ID numérico o un correo
         if isinstance(user_id, int) or (isinstance(user_id, str) and user_id.isdigit()):
             # Es un ID numérico
-            logger.debug(f"Buscando usuario por ID: {user_id}")
+            logger.debug(f"Buscando usuario activo por ID: {user_id}")
             user = db.query(Usuario).filter(Usuario.id == int(user_id)).first()
+            logger.debug(f"Usuario (activo) encontrado por ID: {user.email if user else 'No encontrado'}")
         else:
             # Es un correo electrónico
-            logger.debug(f"Buscando usuario por email: {user_id}")
+            logger.debug(f"Buscando usuario activo por email: {user_id}")
             user = db.query(Usuario).filter(Usuario.email == user_id).first()
+            logger.debug(f"Usuario (activo) encontrado por email: {user.email if user else 'No encontrado'}")
             
     except JWTError:
+        logger.error("Excepción JWTError durante la verificación del token para get_current_active_user")
         raise credentials_exception
         
-    if user is None or not user.activo:
+    if user is None:
+        logger.error("Usuario no encontrado en la DB con el 'sub' proporcionado para get_current_active_user")
+        raise credentials_exception
+
+    if not user.activo:
+        logger.error(f"Usuario {user.email} está inactivo.")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Inactive user"
