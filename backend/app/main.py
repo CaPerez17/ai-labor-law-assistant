@@ -18,20 +18,6 @@ logger.info("Registry inicializado y configurado")
 # Importar el router de la API después de configurar el registry
 from app.api import api_router
 
-# Importar el endpoint temporal de prueba
-# NOTA: Eliminar esta importación en producción después de las pruebas
-try:
-    from backend.add_test_endpoint import add_test_users_endpoint
-except ImportError:
-    # Intentar con ruta relativa alternativa
-    try:
-        from add_test_endpoint import add_test_users_endpoint
-        # Añadir el endpoint temporal
-        add_test_users_endpoint()
-        logging.warning("Endpoint temporal /api/auth/test-users añadido (ELIMINAR EN PRODUCCIÓN)")
-    except ImportError:
-        logging.warning("No se pudo cargar el endpoint de prueba. Esto es normal en producción.")
-
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
@@ -87,6 +73,17 @@ async def startup_event():
     logger.info("🚀 Ejecutando tareas de startup...")
     
     try:
+        # Corregir problemas de base de datos antes de ejecutar seeds
+        try:
+            from scripts.fix_production_db import main as fix_db
+            logger.info("🔧 Ejecutando corrección de base de datos...")
+            if fix_db():
+                logger.info("✅ Base de datos corregida exitosamente")
+            else:
+                logger.warning("⚠️ Algunos problemas de base de datos persisten")
+        except Exception as db_error:
+            logger.warning(f"⚠️ Error en corrección de DB: {db_error}")
+        
         # Ejecutar seed de datos de usuario
         from app.db.seed import create_test_users, create_test_cases, verify_user_credentials
         

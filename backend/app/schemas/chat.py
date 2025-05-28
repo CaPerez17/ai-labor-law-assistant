@@ -1,30 +1,28 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional
 
 class MensajeBase(BaseModel):
     contenido: str = Field(..., min_length=1, max_length=500)
 
-class MensajeCreate(MensajeBase):
+class MensajeCreate(BaseModel):
     receptor_id: int
 
-class MensajeResponse(MensajeBase):
+class MensajeResponse(BaseModel):
     id: int
     remitente_id: int
     receptor_id: int
     timestamp: datetime
     leido: bool
-
-    class Config:
-        orm_mode = True
+    
+    model_config = ConfigDict(from_attributes=True)
 
 class ConversacionResponse(BaseModel):
     id: int
     nombre: str
-    ultimo_mensaje: Optional[str]
-    timestamp: Optional[datetime]
-    no_leidos: int
-    online: bool
-
-    class Config:
-        orm_mode = True 
+    ultimo_mensaje: Optional[str] = None
+    timestamp: Optional[datetime] = None
+    no_leidos: int = 0
+    online: bool = False
+    
+    model_config = ConfigDict(from_attributes=True) 

@@ -41,11 +41,21 @@ class EmailService:
             settings.MAIL_FROM,
             settings.MAIL_SERVER
         ]
-        return all(var and var.strip() for var in required_vars)
+        # Verificar que todas las variables tengan valores válidos y no sean strings vacíos
+        return all(var and var.strip() and "@" in str(var) if "MAIL_FROM" in str(var) else var and var.strip() for var in required_vars if var is not None)
 
     def _initialize_email(self):
         """Inicializa la configuración de email si las variables están disponibles"""
         try:
+            # Doble verificación antes de crear ConnectionConfig
+            if not settings.MAIL_FROM or "@" not in settings.MAIL_FROM:
+                logger.warning("⚠️ MAIL_FROM no es una dirección de email válida")
+                return
+                
+            if not settings.MAIL_USERNAME or not settings.MAIL_PASSWORD:
+                logger.warning("⚠️ Credenciales de email incompletas")
+                return
+                
             self.config = ConnectionConfig(
                 MAIL_USERNAME=settings.MAIL_USERNAME,
                 MAIL_PASSWORD=settings.MAIL_PASSWORD,

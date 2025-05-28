@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/apiClient';
+import { API_PREFIX } from '../config';
 
 const AbogadoDashboard = () => {
     const [casos, setCasos] = useState([]);
@@ -42,7 +43,7 @@ const AbogadoDashboard = () => {
     const cargarCasos = async () => {
         try {
             const token = localStorage.getItem('token');
-            let url = '/api/v1/abogado/casos';
+            let url = `${API_PREFIX}/abogado/casos`;
             
             if (filtroEstado) {
                 url += `?estado=${filtroEstado}`;
@@ -68,7 +69,7 @@ const AbogadoDashboard = () => {
     const cargarMetricas = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await apiClient.get('/api/v1/abogado/metricas', {
+            const response = await apiClient.get(`${API_PREFIX}/abogado/metricas`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -88,7 +89,7 @@ const AbogadoDashboard = () => {
         if (caso.id) {
             try {
                 const token = localStorage.getItem('token');
-                const response = await apiClient.get(`/api/v1/docs/caso/${caso.id}`, {
+                const response = await apiClient.get(`${API_PREFIX}/docs/caso/${caso.id}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -104,7 +105,7 @@ const AbogadoDashboard = () => {
     const actualizarEstadoCaso = async (casoId, nuevoEstado, comentarios = '') => {
         try {
             const token = localStorage.getItem('token');
-            await apiClient.put(`/api/v1/abogado/casos/${casoId}`, {
+            await apiClient.put(`${API_PREFIX}/abogado/casos/${casoId}`, {
                 estado: nuevoEstado,
                 comentarios: comentarios
             }, {
@@ -147,7 +148,7 @@ const AbogadoDashboard = () => {
             formData.append('categoria', 'documento_caso');
             formData.append('subcategoria', 'evidencia');
 
-            await apiClient.post('/api/v1/docs/upload', formData, {
+            await apiClient.post(`${API_PREFIX}/docs/upload`, formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'

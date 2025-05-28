@@ -2,11 +2,11 @@ import axios from 'axios';
 import { BACKEND_URL, API_PREFIX } from '../config';
 
 // Registrar URL base final para logging
-console.log('[API] URL base configurada:', `${BACKEND_URL}${API_PREFIX}`);
+console.log('[API] URL base configurada:', BACKEND_URL);
 
 // Crear una instancia de axios con configuración base
 const apiClient = axios.create({
-  baseURL: `${BACKEND_URL}${API_PREFIX}`,
+  baseURL: BACKEND_URL,
   timeout: 15000, // 15 segundos
   headers: {
     'Content-Type': 'application/json',
@@ -35,18 +35,18 @@ apiClient.interceptors.request.use(
 // Endpoints específicos de la API - NO incluyen '/api/v1' porque baseURL ya lo tiene
 export const endpoints = {
   auth: {
-    login: '/auth/login',
-    register: '/auth/register',
-    refresh: '/auth/refresh',
+    login: `${API_PREFIX}/auth/login`,
+    register: `${API_PREFIX}/auth/register`,
+    refresh: `${API_PREFIX}/auth/refresh`,
   },
   user: {
-    profile: '/users/me',
-    update: '/users/update',
+    profile: `${API_PREFIX}/users/me`,
+    update: `${API_PREFIX}/users/update`,
   },
   metricas: {
-    estadisticas: '/metricas/estadisticas',
-    exportar: '/metricas/exportar',
-    registrar: '/metricas/registrar'
+    estadisticas: `${API_PREFIX}/metricas/estadisticas`,
+    exportar: `${API_PREFIX}/metricas/exportar`,
+    registrar: `${API_PREFIX}/metricas/registrar`
   },
   // Otros endpoints que necesites
 };
@@ -98,7 +98,7 @@ export const loginUser = async (email, password) => {
 export default apiClient;
 
 // Función para obtener analytics/estadísticas
-export const getAnalytics = () => apiClient.get('/metricas/estadisticas');
+export const getAnalytics = () => apiClient.get(`${API_PREFIX}/metricas/estadisticas`);
 
 // Usuarios (si se usa en UsuariosDashboard)
-export const getUsers = () => apiClient.get('/usuarios'); 
+export const getUsers = () => apiClient.get(`${API_PREFIX}/usuarios`); 

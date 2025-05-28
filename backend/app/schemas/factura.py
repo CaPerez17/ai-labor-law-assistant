@@ -44,7 +44,7 @@ class FacturaResponse(FacturaBase):
     metodo_pago: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class PagoInput(BaseModel):
     """Modelo para procesar un pago"""
