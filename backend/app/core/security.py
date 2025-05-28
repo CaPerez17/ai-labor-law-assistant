@@ -93,14 +93,24 @@ async def get_current_user(
         if payload is None:
             raise credentials_exception
             
-        email: str = payload.get("sub")
-        if email is None:
+        # El token puede contener 'sub' como ID numérico o como correo electrónico
+        user_id = payload.get("sub")
+        if user_id is None:
             raise credentials_exception
+            
+        # Determinar si 'sub' es un ID numérico o un correo
+        if isinstance(user_id, int) or (isinstance(user_id, str) and user_id.isdigit()):
+            # Es un ID numérico
+            logger.debug(f"Buscando usuario por ID: {user_id}")
+            user = db.query(Usuario).filter(Usuario.id == int(user_id)).first()
+        else:
+            # Es un correo electrónico
+            logger.debug(f"Buscando usuario por email: {user_id}")
+            user = db.query(Usuario).filter(Usuario.email == user_id).first()
             
     except JWTError:
         raise credentials_exception
         
-    user = db.query(Usuario).filter(Usuario.email == email).first()
     if user is None:
         raise credentials_exception
         
@@ -123,12 +133,25 @@ async def get_current_active_user(
         payload = verify_token(token)
         if payload is None:
             raise credentials_exception
-        email: str = payload.get("sub")
-        if email is None:
+            
+        # El token puede contener 'sub' como ID numérico o como correo electrónico
+        user_id = payload.get("sub")
+        if user_id is None:
             raise credentials_exception
+            
+        # Determinar si 'sub' es un ID numérico o un correo
+        if isinstance(user_id, int) or (isinstance(user_id, str) and user_id.isdigit()):
+            # Es un ID numérico
+            logger.debug(f"Buscando usuario por ID: {user_id}")
+            user = db.query(Usuario).filter(Usuario.id == int(user_id)).first()
+        else:
+            # Es un correo electrónico
+            logger.debug(f"Buscando usuario por email: {user_id}")
+            user = db.query(Usuario).filter(Usuario.email == user_id).first()
+            
     except JWTError:
         raise credentials_exception
-    user = db.query(Usuario).filter(Usuario.email == email).first()
+        
     if user is None or not user.activo:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
