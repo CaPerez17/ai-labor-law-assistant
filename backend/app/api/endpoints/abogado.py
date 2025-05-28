@@ -11,9 +11,7 @@ import logging
 
 from app.schemas.abogado import (
     CasoAbogado,
-    UpdateCasoInput,
-    EstadoCaso as AbogadoEstadoCaso,
-    NivelRiesgo as AbogadoNivelRiesgo
+    UpdateCasoInput
 )
 from app.schemas.caso import CasoResponse
 from app.services.abogado_service import AbogadoService
