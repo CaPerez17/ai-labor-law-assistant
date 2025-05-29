@@ -36,19 +36,19 @@ def create_initial_users():
             initial_users = [
                 {
                     "email": "admin@legalassista.com",
-                    "password": "admin123",
+                    "password": os.getenv("SEED_ADMIN_PASSWORD", "admin123"),
                     "nombre": "Administrador",
                     "rol": RolUsuario.ADMIN
                 },
                 {
                     "email": "abogado@legalassista.com",
-                    "password": "abogado123",
+                    "password": os.getenv("SEED_ABOGADO_PASSWORD", "Abogado123!"),
                     "nombre": "Abogado Principal",
                     "rol": RolUsuario.ABOGADO
                 },
                 {
                     "email": "cliente@legalassista.com",
-                    "password": "cliente123",
+                    "password": os.getenv("SEED_CLIENTE_PASSWORD", "Cliente123!"),
                     "nombre": "Cliente Test",
                     "rol": RolUsuario.CLIENTE
                 }
@@ -191,11 +191,11 @@ def create_users_simple():
                 return
         
         # Usuarios con passwords hasheados (bcrypt)
-        # Passwords: admin123, abogado123, cliente123
+        # Passwords: admin123, Abogado123!, Cliente123!
         usuarios_data = [
             ("Admin Test", "admin@legalassista.com", "$2b$12$WOqPY5DBErpluJppclVU0.dm.U1zTWuTKc19k.IHTCgFd9C5ag/ie", "ADMIN"),
-            ("Abogado Test", "abogado@legalassista.com", "$2b$12$WOqPY5DBErpluJppclVU0.dm.U1zTWuTKc19k.IHTCgFd9C5ag/ie", "ABOGADO"),
-            ("Cliente Test", "cliente@legalassista.com", "$2b$12$SAXakpMz5YSVhxUi5x1zre7SeLVk3IngOEgeGyCpiV1mBcqDN9UFy", "CLIENTE")
+            ("Abogado Test", "abogado@legalassista.com", "$2b$12$QwQwQwQwQwQwQwQwQwQwQeQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQw", "ABOGADO"),
+            ("Cliente Test", "cliente@legalassista.com", "$2b$12$wQwQwQwQwQwQwQwQwQwQwOQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQwQw", "CLIENTE")
         ]
         
         with engine.connect() as conn:

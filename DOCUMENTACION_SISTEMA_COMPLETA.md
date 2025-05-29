@@ -419,6 +419,13 @@ npm test
 ✅ Métricas: calculadas correctamente
 ```
 
+### 🔐 Credenciales de Testing
+```
+Abogado: abogado@legalassista.com / (ver variable de entorno SEED_ABOGADO_PASSWORD, por defecto: Abogado123!)
+Admin:   admin@legalassista.com / (ver variable de entorno SEED_ADMIN_PASSWORD, por defecto: admin123)
+Cliente: cliente@legalassista.com / (ver variable de entorno SEED_CLIENTE_PASSWORD, por defecto: Cliente123!)
+```
+
 ---
 
 ## 🔧 RESOLUCIÓN DE PROBLEMAS
