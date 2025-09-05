@@ -1,361 +1,314 @@
-# AI Labor Law Assistant
+# 🏛️ LegalAssista - AI Legal Assistant
 
-Este MVP está diseñado para ayudar a los usuarios a obtener respuestas rápidas, generadas por IA, a consultas sobre derecho laboral basadas en una base de datos controlada de casos anteriores y documentos legales. Integra NLP, búsqueda BM25, respuestas potenciadas por GPT y automatización a través de n8n para optimizar la toma de decisiones y agilizar la orientación legal.
+**LegalAssista** es un asistente legal inteligente especializado en derecho laboral colombiano que combina análisis automatizado con IA, gestión de casos CRM, y escalamiento a abogados humanos.
 
-## 🌟 Características
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Python](https://img.shields.io/badge/python-3.10+-green.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-red.svg)
+![React](https://img.shields.io/badge/React-18+-cyan.svg)
+![License](https://img.shields.io/badge/license-MIT-yellow.svg)
 
-- 🏛 **Experiencia en Derecho Laboral**: Responde preguntas legales comunes sobre contratos, despidos, beneficios, seguridad social y más.
-- 🔎 **Búsqueda basada en BM25**: Recupera precedentes legales relevantes de una base de datos seleccionada.
-- 🤖 **Respuestas Impulsadas por IA**: Utiliza GPTs y automatización n8n para clasificar consultas y determinar si se requiere revisión profesional.
-- 🔗 **Chatbot de WhatsApp y Web**: Los usuarios pueden acceder a asistencia legal a través de un chatbot de aplicación web o WhatsApp (integración Twilio).
-- 📊 **Sistema Semiautomatizado**: Si no se encuentra una coincidencia exacta, se genera una respuesta básica y se guía a los usuarios hacia una consulta profesional si es necesario.
+## 🚀 Características Principales
 
-## 🛠 Stack Tecnológico
+### ⚖️ **Análisis Legal Automatizado**
+- Consultas legales procesadas con GPT-3.5/GPT-4
+- Sistema BM25 para búsqueda en documentos legales
+- Evaluación de confianza automática
+- Escalamiento inteligente a abogados
 
-- **Backend**: FastAPI (Python)
-- **Base de datos**: PostgreSQL (conjunto de datos controlado de casos legales)
-- **Motor de búsqueda**: BM25 + Coincidencia Semántica GPT
-- **Automatización**: n8n (orquestación de flujo de trabajo y toma de decisiones)
-- **Frontend**: Next.js (Página de inicio + Chatbot)
-- **Mensajería**: API de Twilio para integración de WhatsApp
-- **Despliegue**: Vercel (Frontend), Render (Backend)
+### 📋 **Herramientas Especializadas**
+- **Contrato Realidad**: Evaluación de relaciones laborales
+- **Cálculo de Indemnización**: Liquidaciones precisas por despido
+- **Análisis de Contratos**: Revisión automatizada de documentos
+- **Generación de Contratos**: Plantillas legales personalizadas
 
-## 📋 Requisitos
+### 👥 **Gestión Integral**
+- **CRM para Abogados**: Gestión completa de casos
+- **Chat en Tiempo Real**: Comunicación abogado-cliente
+- **Dashboard Administrativo**: Métricas y analytics
+- **Sistema de Facturación**: Integración con MercadoPago
 
-- Python 3.9+
-- Node.js 18+ (para el frontend y n8n)
-- PostgreSQL o SQLite
-- Cuenta de OpenAI con API key
-- Cuenta de Twilio (opcional, para integración con WhatsApp)
+### 🔄 **Onboarding Inteligente**
+- Clasificación automática de consultas
+- Flujos guiados por tipo de caso
+- Recomendaciones personalizadas
 
-## 🚀 Configuración y Ejecución
+## 🏗️ Arquitectura Técnica
 
-### Configuración de OpenAI
-
-Para utilizar las funcionalidades de IA del asistente, necesitas configurar una API key de OpenAI:
-
-1. Regístrate en [OpenAI Platform](https://platform.openai.com) si aún no tienes una cuenta
-2. Crea una nueva API key en [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-3. Copia la API key generada (comienza con `sk-`)
-4. Pégala en el archivo `.env` del backend:
-   ```
-   OPENAI_API_KEY=sk-tu-api-key-aquí
-   ```
-
-Para verificar que OpenAI está configurado correctamente:
-```bash
-cd backend
-python test_openai_config.py
+### **Stack Tecnológico**
+```
+Frontend:  React 18 + Vite + Tailwind CSS
+Backend:   FastAPI + Python 3.10+ + SQLAlchemy
+Database:  PostgreSQL + pgvector
+Cache:     SQLite (BM25) + Redis (futuro)
+AI:        OpenAI GPT-3.5/GPT-4
+Payments:  MercadoPago API
+Deploy:    Docker + Nginx + DigitalOcean
 ```
 
-### Backend
+### **Patrón Arquitectónico**
+- **Monolito Modular** con 29 endpoints especializados
+- **15 Servicios de Negocio** independientes
+- **Separación clara** de responsabilidades
+- **Preparado para microservicios** sin refactoring mayor
 
+## 📦 Instalación y Configuración
+
+### **Prerrequisitos**
+- Python 3.10+
+- Node.js 18+
+- PostgreSQL 15+
+- Git
+
+### **1. Clonar el Repositorio**
 ```bash
-# Clonar el repositorio
-git clone https://github.com/tu-usuario/ai-labor-law-assistant.git
+git clone https://github.com/CaPerez17/ai-labor-law-assistant.git
 cd ai-labor-law-assistant
+```
 
-# Configurar el entorno virtual
+### **2. Configurar Backend**
+```bash
+cd backend
+
+# Crear entorno virtual
 python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate   # Windows
 
 # Instalar dependencias
-cd backend
 pip install -r requirements.txt
 
 # Configurar variables de entorno
 cp .env.example .env
-# Editar .env con tus configuraciones
-
-# Iniciar el servidor de desarrollo
-uvicorn app.main:app --reload --host 0.0.0.0 --port 12345
+# Editar .env con tus credenciales
 ```
 
-### Frontend
-
+### **3. Configurar Base de Datos**
 ```bash
-# Desde la raíz del proyecto
-cd frontend
+# Crear base de datos PostgreSQL
+createdb legalassista
+
+# Ejecutar migraciones
+alembic upgrade head
+
+# Opcional: Cargar datos de prueba
+python -m app.db.seed
+```
+
+### **4. Configurar Frontend**
+```bash
+cd ../frontend
 
 # Instalar dependencias
 npm install
 
-# Iniciar el servidor de desarrollo
+# Configurar variables de entorno
+cp .env.example .env.local
+# Editar .env.local con la URL del backend
+```
+
+### **5. Ejecutar en Desarrollo**
+```bash
+# Terminal 1: Backend
+cd backend
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# Terminal 2: Frontend
+cd frontend
 npm run dev
 ```
 
-## 📚 Documentación
+Acceder a:
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8000
+- **Documentación**: http://localhost:8000/docs
 
-La documentación completa está disponible en:
+## 🔧 Variables de Entorno
 
-- Backend API: http://localhost:12345/docs
-- Guía de Usuario: [docs/user_guide.md](docs/user_guide.md)
-- Guía de Desarrollo: [docs/developer_guide.md](docs/developer_guide.md)
+### **Backend (.env)**
+```env
+# Base de datos
+DATABASE_URL=postgresql://user:password@localhost/legalassista
+
+# Autenticación
+SECRET_KEY=tu_clave_secreta_jwt
+ALGORITHM=HS256
+
+# OpenAI
+OPENAI_API_KEY=sk-...
+GPT_MODEL=gpt-3.5-turbo
+
+# Email (opcional)
+MAIL_USERNAME=tu_email@gmail.com
+MAIL_PASSWORD=tu_app_password
+MAIL_FROM=noreply@legalassista.com
+MAIL_SERVER=smtp.gmail.com
+
+# MercadoPago (opcional)
+MERCADOPAGO_PUBLIC_KEY=TEST-...
+MERCADOPAGO_ACCESS_TOKEN=TEST-...
+
+# Servidor
+HOST=0.0.0.0
+PORT=8000
+DEBUG=false
+FRONTEND_URL=http://localhost:5173
+```
+
+### **Frontend (.env.local)**
+```env
+VITE_BACKEND_URL=http://localhost:8000
+VITE_WEBSOCKET_URL=ws://localhost:8000/ws
+VITE_APP_VERSION=1.0.0
+```
+
+## 🐳 Despliegue con Docker
+
+### **Desarrollo**
+```bash
+# Construir y ejecutar
+docker-compose up --build
+
+# Solo backend
+docker-compose up backend
+
+# Solo frontend
+docker-compose up frontend
+```
+
+### **Producción**
+```bash
+# Configurar variables de entorno de producción
+cp .env.example .env.production
+
+# Desplegar
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+## 📚 Estructura del Proyecto
+
+```
+ai-labor-law-assistant/
+├── backend/                 # FastAPI Backend
+│   ├── app/
+│   │   ├── api/            # 29 Endpoints especializados
+│   │   ├── core/           # Configuración y seguridad
+│   │   ├── db/             # Base de datos y modelos
+│   │   ├── models/         # Modelos SQLAlchemy
+│   │   ├── schemas/        # Validación Pydantic
+│   │   ├── services/       # 15 Servicios de negocio
+│   │   └── templates/      # Templates de email
+│   ├── alembic/            # Migraciones de DB
+│   ├── main.py             # Punto de entrada
+│   └── requirements.txt    # Dependencias Python
+├── frontend/               # React Frontend
+│   ├── src/
+│   │   ├── api/           # Cliente HTTP
+│   │   ├── components/    # Componentes React
+│   │   ├── layouts/       # Layouts de página
+│   │   └── pages/         # Páginas principales
+│   ├── package.json       # Dependencias Node.js
+│   └── vite.config.js     # Configuración Vite
+├── docs/                  # Documentación
+├── README.md              # Este archivo
+└── render.yaml            # Configuración Render.com
+```
+
+## 🧪 Testing
+
+### **Backend**
+```bash
+cd backend
+
+# Ejecutar tests
+pytest
+
+# Con coverage
+pytest --cov=app --cov-report=html
+
+# Tests específicos
+pytest app/tests/test_auth.py -v
+```
+
+### **Frontend**
+```bash
+cd frontend
+
+# Tests unitarios
+npm run test
+
+# Tests E2E
+npm run test:e2e
+
+# Coverage
+npm run test:coverage
+```
+
+## 📊 Funcionalidades por Módulo
+
+| Módulo | Estado | Descripción |
+|--------|--------|-------------|
+| **Análisis Legal** | ✅ Completo | GPT + BM25 + Confidence scoring |
+| **Contrato Realidad** | ✅ Completo | Evaluación multi-factor de relaciones laborales |
+| **Indemnización** | ✅ Completo | Cálculos precisos por tipo de contrato |
+| **Análisis Documentos** | ✅ Completo | PDF/DOCX + detección de riesgos |
+| **CRM Abogados** | ✅ Completo | Gestión de casos + métricas |
+| **Chat Tiempo Real** | ✅ Completo | WebSocket abogado-cliente |
+| **Facturación** | ✅ Completo | MercadoPago + webhooks |
+| **Notificaciones** | ✅ Completo | Email + in-app |
+| **Admin Dashboard** | ✅ Completo | Analytics + gestión usuarios |
+| **Escalamiento WhatsApp** | ⚠️ Preparado | Código listo, API no conectada |
+
+## 🔒 Seguridad
+
+- **Autenticación JWT** con refresh tokens
+- **Hashing de contraseñas** con bcrypt
+- **Validación de entrada** con Pydantic
+- **Protección CORS** configurada
+- **Rate limiting** (recomendado para producción)
+- **HTTPS** en producción con Let's Encrypt
+
+## 🚀 Roadmap
+
+### **Próximas Funcionalidades**
+- [ ] **Casos de Tránsito**: Fotomultas y comparendos
+- [ ] **Reformulación de Preguntas**: IA para consultas ambiguas
+- [ ] **Sistema Híbrido Real**: Conexión WhatsApp Business
+- [ ] **ML Avanzado**: Clasificación inteligente de casos
+
+### **Mejoras Técnicas**
+- [ ] **Redis Cache**: Cache distribuido
+- [ ] **Message Queues**: Procesamiento asíncrono
+- [ ] **Observabilidad**: Prometheus + Grafana
+- [ ] **Microservicios**: Extracción gradual de servicios
 
 ## 🤝 Contribuir
 
-Las contribuciones son bienvenidas. Por favor, lee [CONTRIBUTING.md](CONTRIBUTING.md) para obtener detalles sobre nuestro código de conducta y el proceso para enviarnos pull requests.
+1. Fork el repositorio
+2. Crear rama feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit cambios (`git commit -am 'Agregar nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Crear Pull Request
 
 ## 📄 Licencia
 
-Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
+Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
 
-# LegalAssista - Entorno de Prueba
+## 👨‍💻 Autor
 
-Este documento describe cómo configurar y ejecutar el entorno de prueba de LegalAssista.
+**Camilo Pérez**
+- GitHub: [@CaPerez17](https://github.com/CaPerez17)
+- Email: devcamper97@gmail.com
 
-## Requisitos Previos
+## 🙏 Agradecimientos
 
-- Python 3.8+
-- PostgreSQL
-- Redis
-- Node.js 14+
-- npm o yarn
+- OpenAI por la API GPT
+- FastAPI por el excelente framework
+- React team por la librería frontend
+- Comunidad open source por las herramientas utilizadas
 
-## Configuración del Backend
+---
 
-1. Clonar el repositorio:
-```bash
-git clone <url-del-repositorio>
-cd legalassista
-```
-
-2. Crear y activar entorno virtual:
-```bash
-python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
-```
-
-3. Instalar dependencias:
-```bash
-cd backend/app
-pip install -r requirements.txt
-```
-
-4. Configurar variables de entorno:
-- Copiar el archivo `.env.example` a `.env`
-- Completar las variables con tus credenciales
-
-5. Ejecutar el servidor:
-```bash
-chmod +x scripts/run_dev.sh
-./scripts/run_dev.sh
-```
-
-## Credenciales de Prueba
-
-### Usuario Admin
-- Email: admin@legalassista.com
-- Contraseña: Admin123!
-
-### Usuario Abogado
-- Email: abogado@legalassista.com
-- Contraseña: Abogado123!
-
-### Usuario Cliente
-- Email: cliente@legalassista.com
-- Contraseña: Cliente123!
-
-## Endpoints Principales
-
-### Autenticación
-- POST /api/v1/auth/register - Registro de usuario
-- POST /api/v1/auth/login - Inicio de sesión
-- POST /api/v1/auth/recover-password - Recuperación de contraseña
-
-### Casos
-- GET /api/v1/casos - Listar casos
-- POST /api/v1/casos - Crear caso
-- GET /api/v1/casos/{id} - Obtener caso
-- PUT /api/v1/casos/{id} - Actualizar caso
-
-### Chat
-- GET /api/v1/chat/{caso_id} - Obtener mensajes
-- POST /api/v1/chat/{caso_id} - Enviar mensaje
-- WebSocket: ws://localhost:8000/ws/chat/{caso_id}
-
-### Notificaciones
-- GET /api/v1/notificaciones - Listar notificaciones
-- POST /api/v1/notificaciones/{id}/leer - Marcar como leída
-
-### Pagos
-- POST /api/v1/pagos/crear-sesion - Crear sesión de pago
-- POST /api/v1/pagos/webhook - Webhook de Stripe
-
-## Flujos de Prueba
-
-### Flujo de Cliente
-1. Registro/Login como cliente
-2. Onboarding conversacional
-3. Crear caso
-4. Subir documentos
-5. Realizar pago
-6. Chat con abogado
-7. Recibir notificaciones
-
-### Flujo de Abogado
-1. Login como abogado
-2. Ver casos asignados
-3. Responder mensajes
-4. Actualizar estado de casos
-5. Generar facturas
-
-### Flujo de Admin
-1. Login como admin
-2. Gestionar usuarios
-3. Ver analytics
-4. Configurar sistema
-
-## Notas Importantes
-
-- El entorno de prueba usa una base de datos PostgreSQL local
-- Los pagos se procesan en modo sandbox de Stripe
-- Las notificaciones por email se envían a una bandeja de prueba
-- El chat en tiempo real requiere Redis
-- Los webhooks de Stripe se pueden probar usando el CLI de Stripe
-
-## Solución de Problemas
-
-1. Si la base de datos no se inicializa:
-```bash
-alembic upgrade head
-python scripts/init_test_data.py
-```
-
-2. Si los webhooks no funcionan:
-```bash
-stripe listen --forward-to localhost:8000/api/v1/pagos/webhook
-```
-
-3. Si el chat no funciona:
-- Verificar que Redis esté corriendo
-- Revisar la conexión WebSocket
-
-## Contacto
-
-Para soporte técnico o preguntas:
-- Email: soporte@legalassista.com
-- Slack: #soporte-legalassista
-
-## Inicio Rápido
-
-Para iniciar todo el entorno de prueba con un solo comando:
-
-```bash
-# Dar permisos de ejecución a los scripts
-chmod +x scripts/start_all.sh
-chmod +x backend/app/scripts/run_dev.sh
-chmod +x backend/app/scripts/run_websocket.sh
-chmod +x frontend/scripts/run_dev.sh
-
-# Iniciar todos los servicios
-./scripts/start_all.sh
-```
-
-### Verificación de Servicios
-
-1. Backend API: http://localhost:8000/docs
-2. Frontend: http://localhost:3000
-3. WebSocket: ws://localhost:8000/ws
-4. Stripe Webhook: Escuchando en localhost:8000/api/v1/pagos/webhook
-
-### Prueba de Flujos
-
-1. **Flujo de Cliente**:
-   - Acceder a http://localhost:3000
-   - Registrarse como cliente
-   - Completar el onboarding
-   - Crear un caso
-   - Subir documentos
-   - Realizar pago de prueba
-   - Iniciar chat con abogado
-
-2. **Flujo de Abogado**:
-   - Acceder a http://localhost:3000
-   - Iniciar sesión como abogado
-   - Ver casos asignados
-   - Responder mensajes
-   - Actualizar estado de casos
-
-3. **Flujo de Admin**:
-   - Acceder a http://localhost:3000
-   - Iniciar sesión como admin
-   - Gestionar usuarios
-   - Ver analytics
-   - Configurar sistema
-
-## Administración de Usuarios
-
-### Scripts de Administración
-
-El sistema incluye scripts para gestionar usuarios directamente en la base de datos:
-
-#### Crear Usuarios
-
-```bash
-# Crear un usuario administrador
-python backend/create_users_direct.py --role admin --email admin@legalassista.com --password Admin123!
-
-# Crear un usuario abogado
-python backend/create_users_direct.py --role abogado --email abogado@legalassista.com --password Abogado123!
-
-# Crear un usuario cliente
-python backend/create_users_direct.py --role cliente --email cliente@legalassista.com --password Cliente123!
-
-# Crear un usuario demo
-python backend/create_users_direct.py --role cliente --email demo@legalassista.com --password Demo123! --demo
-```
-
-#### Listar Usuarios
-
-```bash
-# Listar todos los usuarios
-python backend/list_users.py
-
-# Listar usuarios por rol
-python backend/list_users.py --role admin
-python backend/list_users.py --role abogado
-python backend/list_users.py --role cliente
-```
-
-### Notas Importantes
-
-- Los scripts requieren acceso a la base de datos de producción
-- Las contraseñas deben tener al menos 8 caracteres
-- Los roles válidos son: `admin`, `abogado`, `cliente`
-- Los usuarios demo se marcan automáticamente como inactivos
-
-## Tests
-
-### Instalación de Dependencias
-
-```bash
-cd backend
-pip install -r requirements-test.txt
-```
-
-### Ejecutar Tests
-
-```bash
-# Ejecutar todos los tests
-pytest
-
-# Ejecutar tests con cobertura
-pytest --cov=app tests/
-
-# Ejecutar tests específicos
-pytest tests/test_auth.py
-```
-
-### Notas sobre Tests
-
-- Los tests utilizan una base de datos SQLite en memoria
-- Cada test se ejecuta en una transacción aislada
-- La base de datos se limpia automáticamente después de cada test
-- Los tests cubren:
-  - Registro de usuarios
-  - Login de usuarios
-  - Validación de datos
-  - Manejo de errores
+⭐ **¡Dale una estrella si este proyecto te ha sido útil!**
 
 

@@ -49,7 +49,72 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
-cover/
+
+# LegalAssista specific - Development & Debugging files
+*.bak
+*_test.py
+test_*.py
+*_debug.py
+*_fix.py
+fix_*.py
+debug_*.py
+temp_*.py
+example_*.py
+verify_*.py
+load_*.py
+create_users*.py
+direct_seed.py
+startup.py
+run.py
+list_users.py
+auth_debug.py
+add_test_endpoint.py
+fixed_main.py
+
+# LegalAssista specific - Deployment & Setup scripts
+setup_*.sh
+verify_*.sh
+fix_*.sh
+diagnose_*.sh
+*_fix.sh
+connect_*.sh
+initialize_*.sh
+secure_*.sh
+backend_*.sh
+start_*.sh
+iniciar_*.sh
+test_*.sh
+
+# LegalAssista specific - Documentation of resolved issues
+*solucion*.md
+*documentacion*.md
+INFORME_*.md
+RESUMEN_*.md
+*_INSTRUCTIONS.md
+SERVER_SETUP_*.md
+
+# LegalAssista specific - Temporary SQL files
+update_password*.sql
+temp_*.sql
+test_*.sql
+
+# LegalAssista specific - Development databases
+*.db
+sql_app.db
+app.db
+backend.db
+test.db
+legalassista.db
+
+# LegalAssista specific - Temporary JSON files
+usage_stats.json
+api_response.json
+
+# LegalAssista specific - Cache and uploads
+cache/
+uploads/
+data/casos/
+data/metricas/
 
 # Translations
 *.mo
